@@ -57,6 +57,7 @@ class UNet(nn.Module):
         # Initialize weights
         self._init_weights()
 
+
     def _init_weights(self):
         """Initializes weights using He et al. (2015)."""
 
@@ -64,6 +65,7 @@ class UNet(nn.Module):
             if isinstance(m, nn.ConvTranspose2d) or isinstance(m, nn.Conv2d):
                 m.weight.data.normal_(0, 0.02)
                 m.bias.data.zero_()
+
 
     def forward(self, x):
         """Through encoder, then decoder with concat operators."""
@@ -89,11 +91,3 @@ class UNet(nn.Module):
 
         # Final activation
         return self._block6(concat1)
-
-    def save_model(self, ckpt_path, epoch, overwrite=True):
-        """Saves model to files; can be overwritten at every epoch to save disk space."""
-
-        fname_unet = '{}/unet.pt'.format(ckpt_path) if overwrite else '{}/unet_{}.pt'.format(ckpt_path, epoch)
-        print('Saving checkpoint to: {}'.format(fname_unet))
-        torch.save(self.model.state_dict(), fname_unet)
-        print('\n' + 80 * '-')

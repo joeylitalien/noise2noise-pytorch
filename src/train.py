@@ -4,6 +4,7 @@
 import torch
 import torch.nn as nn
 from torch.optim import Adam
+from torch.autograd import Variable
 
 from unet import UNet
 from rednet import RedNet
@@ -20,30 +21,30 @@ class Noise2Noise(object):
     def __init__(self, params):
         self.p = params
 
-        # Create directories if they don't exist
-        if not os.path.isdir(self.p.ckpt_path):
-            os.mkdir(self.p.ckpt_path)
+        # Total minibatches by epoch (for report messages only)
+        self.num_batches = self.p.train_len // self.p.batch_size
 
         # Get ready to ruuummmmmmble
         self.compile()
 
+
     def compile(self):
-        """Compiles model (loss function, optimizers, etc.)"""
+        """Compiles model (architecture, loss function, optimizers, etc.)"""
 
         # Model
         self.model = UNet()
 
         # Optimizer
         self.optim = Adam(self.model.parameters(),
-                           lr=self.p.learning_rate,
-                           betas=self.p.adam[:2],
-                           eps=self.p.adam[2])
+                          lr=self.p.learning_rate,
+                          betas=self.p.adam[:2],
+                          eps=self.p.adam[2])
 
         # Loss function
         if self.p.loss == 'rmse':
-            raise ValueError('rMSE loss not implemented yet!')
+            raise NotImplementedError('rMSE loss not implemented yet!')
         elif self.p.loss == 'l2':
-            raise ValueError('L2 loss not implemented yet!')
+            raise NotImplementedError('L2 loss not implemented yet!')
         else:
             self.loss = nn.L1Loss()
 
@@ -52,39 +53,71 @@ class Noise2Noise(object):
             self.model = self.model.cuda()
             self.loss = self.loss.cuda()
 
-    def eval(self):
-        self.model.train(False)
 
-        return
+    def save_model(self, epoch, overwrite=True):
+        """Saves model to files; can be overwritten at every epoch to save disk space."""
+
+        fname_unet = '{}/model.pt'.format(self.p.ckpt_path) if overwrite \
+            else '{}/model_epoch_{}.pt'.format(self.p.ckpt_path, epoch)
+        print('Saving checkpoint to: {}'.format(fname_unet))
+        torch.save(self.model.state_dict(), fname_unet)
+        print('\n' + 80 * '-')
+
+
+    def eval(self):
+        """Evaluates model on validation/test sets."""
+
+        self.model.train(False)
+        raise NotImplementedError
+
 
     def train(self, data_loader):
-        """Trains model on dataset."""
+        """Trains model on training set."""
 
         self.model.train(True)
         train_loss, train_acc, valid_acc, test_acc = [], [], [], []
-        best_valid_acc = 0.
 
         # Main training loop
         start = datetime.now()
         for epoch in self.p.nb_epochs:
-            start_epoch = datetime.now()
+            # Some statistics trackers
+            epoch_start = datetime.now()
+            loss_meter = AvgMeter()
+            time_meter = AvgMeter()
 
             # Minibatch SGD
             for batch_idx, (x, y) in enumerate(data_loader):
-                x, y = Variable(x), Variable(y)
+                progress_bar(batch_idx, self.p.batch_report)
 
+                x, y = Variable(x), Variable(y)
                 if torch.cuda.is_available() and self.p.cuda:
                     x = x.cuda()
                     y = y.cuda()
 
-                utils.progress_bar(batch_idx, self.p.batch_report)
+                loss = self.loss(y_pred, y)
+                batch_loss.update(loss)
 
+                # Zero gradients, perform a backward pass, and update the weights
+                self.optim.zero_grad()
+                loss.backward()
+                self.optim.step()
+
+                # Report statistics
+                if batch_idx % self.p.batch_report == 0 and batch_idx:
+                    show_training_stats(batch_idx, self.num_batches, loss_meter.avg, time_meter.avg)
+                    loss_meter.reset()
+                    time_meter.reset()
 
             # Save model
-            utils.clear_line()
-            print('Elapsed time for epoch: {}'.format(utils.time_elapsed_since(start_epoch)))
+            clear_line()
+            print('Elapsed time for epoch: {}'.format(time_elapsed_since(epoch_start)))
             self.model.save_model(self.p.ckpt_path, epoch)
             self.eval()
+
+        elapsed = time_elapsed_since(start)
+        print('Training done! Total elapsed time: {}\n'.format(elapsed))
+
+        return train_loss
 
 
 def parse_args():
@@ -94,9 +127,8 @@ def parse_args():
     parser = ArgumentParser(description='PyTorch implementation of Noise2Noise from Lehtinen et al. (2018)')
 
     # Data parameters
-    parser.add_argument('-d', '--data', help='dataset path', metavar='PATH', default='./data')
-    parser.add_argument('-r', '--redux', help='train on smaller dataset', action='store_true')
-    parser.add_argument('--ckpt-path', help='checkpoint path', metavar='PATH', default='./ckpts')
+    parser.add_argument('-d', '--data', help='dataset path', metavar='PATH', default='data')
+    parser.add_argument('--ckpt-path', help='checkpoint path', metavar='PATH', default='ckpts')
     parser.add_argument('--batch-report', help='batch report interval', default=500, type=int)
 
     # Training parameters
@@ -119,5 +151,16 @@ if __name__ == '__main__':
     """Launches training."""
 
     params = parse_args()
-    model = Noise2Noise(params)
-    model.train()
+    # model = Noise2Noise(params)
+
+    # Read datasets
+    root = os.path.join(os.path.dirname(os.path.join(os.path.abspath(__file__))), '..')
+    train_dir = os.path.join(root, params.data, 'train')
+    train_dataset = load_dataset(train_dir, params.batch_size)
+    #valid_dir = os.path.join(root, params.data, 'valid')
+    #valid_dataset = load_dataset(valid_dir, params.batch_size)
+
+    extra = {'train_len': len([i for i in os.listdir(train_dir) if os.path.isfile(i)])}
+    params.__dict__.update(extra)
+
+    #model.train()

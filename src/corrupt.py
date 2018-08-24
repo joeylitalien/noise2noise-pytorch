@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import torch
-import torch.nn as nn
 
 
 def corrupt_with_noise(img, type='gaussian', sigma=50):

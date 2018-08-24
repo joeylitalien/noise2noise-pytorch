@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import torch
 import torch.nn as nn
 
 
@@ -37,6 +36,7 @@ class RedNet(nn.Module):
         # Initialize weights
         self._init_weights()
 
+
     def _init_weights(self):
         """Initializes weights using He et al. (2015)."""
 
@@ -45,6 +45,7 @@ class RedNet(nn.Module):
                 print('Init')
                 m.weight.data.normal_(0, 0.02)
                 m.bias.data.zero_()
+
 
     def forward(self, x):
         """Adds skip connections every <skips> layers,
@@ -60,7 +61,7 @@ class RedNet(nn.Module):
         # Get last deconvolution
         y = self._deconv1(convs[self.depth - 1]) + convs[self.depth - 2]
 
-        # Add symmetric skip shortcuts every
+        # Add symmetric skip shortcuts every <skips> layers
         for i in range(self.depth - 1):
             y = self._deconv1(y)
             if i % self.skips:
