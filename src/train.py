@@ -9,8 +9,10 @@ from torch.autograd import Variable
 from unet import UNet
 from rednet import RedNet
 from utils import *
+from dataset import *
 
 import os
+import PIL
 from datetime import datetime
 from argparse import ArgumentParser
 
@@ -36,9 +38,9 @@ class Noise2Noise(object):
 
         # Optimizer
         self.optim = Adam(self.model.parameters(),
-                          lr=self.p.learning_rate,
-                          betas=self.p.adam[:2],
-                          eps=self.p.adam[2])
+                lr=self.p.learning_rate,
+                betas=self.p.adam[:2],
+                eps=self.p.adam[2])
 
         # Loss function
         if self.p.loss == 'rmse':
@@ -58,7 +60,7 @@ class Noise2Noise(object):
         """Saves model to files; can be overwritten at every epoch to save disk space."""
 
         fname_unet = '{}/model.pt'.format(self.p.ckpt_path) if overwrite \
-            else '{}/model_epoch_{}.pt'.format(self.p.ckpt_path, epoch)
+                else '{}/model_epoch_{}.pt'.format(self.p.ckpt_path, epoch)
         print('Saving checkpoint to: {}'.format(fname_unet))
         torch.save(self.model.state_dict(), fname_unet)
         print('\n' + 80 * '-')
@@ -79,7 +81,7 @@ class Noise2Noise(object):
 
         # Main training loop
         start = datetime.now()
-        for epoch in self.p.nb_epochs:
+        for epoch in range(self.p.nb_epochs):
             # Some statistics trackers
             epoch_start = datetime.now()
             loss_meter = AvgMeter()
@@ -120,6 +122,25 @@ class Noise2Noise(object):
         return train_loss
 
 
+def load_datasets(root_dir, batch_size):
+    """Load training and validation tests."""
+
+    # Training set
+    train_dir = os.path.join(root_dir, 'train')
+    train_loader = load_noisy_dataset(train_dir, batch_size, crops=256, shuffled=True)
+
+    # Validation set
+    valid_dir = os.path.join(root_dir, 'valid')
+    valid_loader = load_noisy_dataset(valid_dir, batch_size, crops=0, shuffled=False)
+
+    # Dataset lengths
+    lens = {}
+    lens['train_len'] = len(train_loader) * batch_size
+    lens['valid_len'] = len(valid_loader) * batch_size
+
+    return train_loader, valid_loader, lens
+
+
 def parse_args():
     """Command-line argument parser for training."""
 
@@ -127,8 +148,8 @@ def parse_args():
     parser = ArgumentParser(description='PyTorch implementation of Noise2Noise from Lehtinen et al. (2018)')
 
     # Data parameters
-    parser.add_argument('-d', '--data', help='dataset path', metavar='PATH', default='data')
-    parser.add_argument('--ckpt-path', help='checkpoint path', metavar='PATH', default='ckpts')
+    parser.add_argument('-d', '--data', help='dataset path', default='../data')
+    parser.add_argument('--ckpt-path', help='checkpoint path', default='ckpts')
     parser.add_argument('--batch-report', help='batch report interval', default=500, type=int)
 
     # Training parameters
@@ -141,7 +162,7 @@ def parse_args():
 
     # Corruption noise parameters
     parser.add_argument('-n', '--noise-distrib', help='noise distribution',
-                        choices=['gaussian', 'poisson', 'mc'], default='gaussian', type=str)
+            choices=['gaussian', 'poisson', 'mc'], default='gaussian', type=str)
     parser.add_argument('-v', '--noise-variance', help='noise variance', default=50.0, type=float)
 
     return parser.parse_args()
@@ -151,16 +172,16 @@ if __name__ == '__main__':
     """Launches training."""
 
     params = parse_args()
-    # model = Noise2Noise(params)
 
     # Read datasets
-    root = os.path.join(os.path.dirname(os.path.join(os.path.abspath(__file__))), '..')
-    train_dir = os.path.join(root, params.data, 'train')
-    train_dataset = load_dataset(train_dir, params.batch_size)
-    #valid_dir = os.path.join(root, params.data, 'valid')
-    #valid_dataset = load_dataset(valid_dir, params.batch_size)
+    train_path = os.path.join(params.data, 'train')
+    valid_path = os.path.join(params.data, 'valid')
+    train_dataset = N2NDataset(train_path, noise_dist=('gaussian', 50))
+    valid_dataset = N2NDataset(valid_path, noise_dist=('gaussian', 50))
 
-    extra = {'train_len': len([i for i in os.listdir(train_dir) if os.path.isfile(i)])}
-    params.__dict__.update(extra)
+    x, y = train_dataset[0]
+    x.show()
+    y.show()
 
-    #model.train()
+    # Train
+    #model.train(train_loader)

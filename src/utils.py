@@ -9,14 +9,18 @@ import numpy as np
 from datetime import datetime
 
 
-def load_dataset(root_dir, batch_size):
+def load_noisy_dataset(root_dir, batch_size, noise_type, crops, shuffled):
     """Loads data from image folder."""
 
-    mean, std = [0.5] * 3, [0.5] * 3
-    normalize = transforms.Normalize(mean=mean, std=std)
-    train_data = ImageFolder(root=root_dir,
-                             transform=transforms.Compose([transforms.ToTensor(), normalize]))
-    data_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    if crops > 0:
+        data = ImageFolder(root=root_dir,
+                           transform=transforms.Compose([
+                               transforms.RandomResizedCrop(crops),
+                               transforms.ToTensor()]))
+    else:
+        data = ImageFolder(root=root_dir, transform=transforms.ToTensor())
+
+    data_loader = DataLoader(data, batch_size=batch_size, shuffle=shuffled)
     return data_loader
 
 
