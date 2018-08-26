@@ -7,7 +7,7 @@ The authors use [ImageNet](http://image-net.org/download), but any dataset will 
 
 ## Training
 
-See `python3 noise2noise.py --h` for list of optional arguments, or `train.sh` for an example. For instance, 
+See `python3 noise2noise.py --h` for list of optional arguments, or `train.sh` for an example.
 
 By default, the model train with noisy targets. To train with clean targets, use `--clean-targets`. The program assumes that the directory passed to `--data` contains subdirectories `train` and `valid`. To train and validate on smaller datasets, create `train_redux` and `valid_redux`, and use the `--redux` option. 
 
