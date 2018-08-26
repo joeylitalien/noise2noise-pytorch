@@ -9,55 +9,53 @@ import numpy as np
 from datetime import datetime
 
 
-def load_noisy_dataset(root_dir, batch_size, noise_type, crops, shuffled):
-    """Loads data from image folder."""
-
-    if crops > 0:
-        data = ImageFolder(root=root_dir,
-                           transform=transforms.Compose([
-                               transforms.RandomResizedCrop(crops),
-                               transforms.ToTensor()]))
-    else:
-        data = ImageFolder(root=root_dir, transform=transforms.ToTensor())
-
-    data_loader = DataLoader(data, batch_size=batch_size, shuffle=shuffled)
-    return data_loader
-
-
 def clear_line():
     """Clears line from any characters."""
 
     print('\r{}'.format(' ' * 80), end='\r')
 
 
-def progress_bar(batch_idx, report_interval, loss):
+def progress_bar(batch_idx, num_batches, report_interval, train_loss):
     """Neat progress bar to track training."""
 
-    bar_size = 24
+    dec = str(int(np.ceil(np.log10(num_batches))))
+    bar_size = 22 + int(dec)
     progress = (((batch_idx - 1) % report_interval) + 1) / report_interval
     fill = int(progress * bar_size)
-    print('\rBatch {:>4d} [{}{}] Loss: {:>7.4f}'.format(batch_idx, '=' * fill, ' ' * (bar_size - fill), loss), end='')
+    print('\rBatch {:>{dec}d} [{}{}] Train loss: {:>1.5f}'.format(batch_idx, '=' * fill, ' ' * (bar_size - fill), train_loss, dec=dec), end='')
 
 
 def time_elapsed_since(start):
     """Computes elapsed time since start."""
 
-    return str(datetime.now() - start)[:-7]
+    timedelta = datetime.now() - start
+    string = str(timedelta)[:-7]
+    ms = int(timedelta.total_seconds() * 1000)
+
+    return string, ms
 
 
-def show_training_stats(batch_idx, num_batches, loss, elapsed):
+def show_on_epoch_end(epoch_time, valid_time, valid_loss):
+    """Formats validation error stats."""
+
+    clear_line()
+    print('Epoch train time: {} | Epoch valid time: {} | Valid loss: {:>1.5f}'.format(epoch_time, valid_time, valid_loss))
+
+
+def show_on_report(batch_idx, num_batches, loss, elapsed):
     """Formats training stats."""
 
     clear_line()
     dec = str(int(np.ceil(np.log10(num_batches))))
-    print('Batch {:>{dec}d} / {:d} | Loss: {:>7.4f} | Avg time / batch: {:d} ms'.format(batch_idx,
+    print('Batch {:>{dec}d} / {:d} | Avg loss: {:>1.5f} | Avg time / batch: {:d} ms'.format(batch_idx,
                                                                                         num_batches, loss, int(elapsed),
                                                                                         dec=dec))
 
 
 class AvgMeter(object):
-    """Computes and stores the average and current value."""
-
+    """Computes and stores the average and current value.
+    Useful for tracking averages such as elapsed times, minibatch losses, etc.
+    """
 
     def __init__(self):
         self.reset()

@@ -4,7 +4,7 @@
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from torch.autograd import Variable
+from torchvision.utils import make_grid
 
 from unet import UNet
 from rednet import RedNet
@@ -21,17 +21,20 @@ class Noise2Noise(object):
     """Implementation of Noise2Noise from Lehtinen et al. (2018)."""
 
     def __init__(self, params):
+        """Initializes model."""
+
         self.p = params
 
-        # Total minibatches by epoch (for report messages only)
-        self.num_batches = self.p.train_len // self.p.batch_size
+        # Create directory for model checkpoints
+        if not os.path.isdir(params.ckpt_save_path):
+            os.mkdir(params.ckpt_save_path)
 
-        # Get ready to ruuummmmmmble
+        # Get ready to ruummmbbbbbble
         self.compile()
 
 
     def compile(self):
-        """Compiles model (architecture, loss function, optimizers, etc.)"""
+        """Compiles model (architecture, loss function, optimizers, etc.)."""
 
         # Model
         self.model = UNet()
@@ -56,89 +59,148 @@ class Noise2Noise(object):
             self.loss = self.loss.cuda()
 
 
-    def save_model(self, epoch, overwrite=True):
+    def save_model(self, epoch, valid_loss):
         """Saves model to files; can be overwritten at every epoch to save disk space."""
 
-        fname_unet = '{}/model.pt'.format(self.p.ckpt_path) if overwrite \
-                else '{}/model_epoch_{}.pt'.format(self.p.ckpt_path, epoch)
-        print('Saving checkpoint to: {}'.format(fname_unet))
+        fname_unet = '{}/n2n.pt'.format(self.p.ckpt_save_path) if self.p.ckpt_overwrite \
+            else '{}/n2n_epoch{}_{:>1.5f}.pt'.format(self.p.ckpt_save_path, epoch + 1, valid_loss)
+        print('Saving checkpoint to: {}\n'.format(fname_unet))
         torch.save(self.model.state_dict(), fname_unet)
-        print('\n' + 80 * '-')
 
 
-    def eval(self):
-        """Evaluates model on validation/test sets."""
+    def load_model(self, ckpt_fname):
+        """Loads model from checkpoint file."""
+
+        print('Loading checkpoint from: {}'.format(ckpt_fname))
+        if self.p.cuda:
+            self.model.load_state_dict(torch.load(ckpt_fname))
+        else:
+            self.model.load_state_dict(torch.load(ckpt_fname, map_location='cpu'))
+
+
+    def denoise(self, test_loader, show_first_4=True):
+        """Evaluates denoiser on test set."""
 
         self.model.train(False)
-        raise NotImplementedError
+
+        noisy_imgs = []
+        denoised_imgs = []
+        clean_imgs = []
+
+        # Create directory for denoised images
+        denoised_dir = os.path.join(params.data, 'denoised')
+        if not os.path.isdir(denoised_dir):
+            os.mkdir(denoised_dir)
+
+        for batch_idx, (source, target) in enumerate(test_loader):
+            # Only do first 4 images, for now
+            if batch_idx >= 4:
+                break
+
+            if torch.cuda.is_available() and self.p.cuda:
+                source = source.cuda()
+
+            noisy_imgs.append(source.detach())
+            denoised_img = self.model(source).detach()
+            denoised_imgs.append(denoised_img)
+            clean_imgs.append(target)
+
+        noisy_imgs = [t.squeeze(0) for t in noisy_imgs]
+        denoised_imgs = [t.squeeze(0) for t in denoised_imgs]
+        clean_imgs = [t.squeeze(0) for t in clean_imgs]
+
+        for i in range(len(denoised_imgs)):
+            noisy = transforms.ToPILImage()(noisy_imgs[i])
+            denoised = transforms.ToPILImage()(denoised_imgs[i])
+            clean = transforms.ToPILImage()(clean_imgs[i])
+            if show_first_4:
+                combined = Image.new('RGB', (3 * clean.size[0], clean.size[1]))
+                combined.paste(noisy, (0, 0))
+                combined.paste(denoised, (clean.size[0], 0))
+                combined.paste(clean, (2 * clean.size[0], 0))
+                combined.show()
+            fname = os.path.splitext(test_loader.dataset.imgs[i])[0]
+            denoised.save(os.path.join(denoised_dir, '{}_denoised.png'.format(fname)))
 
 
-    def train(self, data_loader):
+    def eval(self, valid_loader):
+        """Evaluates model on validation sets."""
+
+        self.model.train(False)
+
+        valid_start = datetime.now()
+        loss_meter = AvgMeter()
+        for batch_idx, (source, target) in enumerate(valid_loader):
+            if torch.cuda.is_available() and self.p.cuda:
+                source = source.cuda()
+                target = target.cuda()
+
+            source_denoised = self.model(source)
+            loss = self.loss(source_denoised, target)
+            loss_meter.update(loss.item())
+
+        valid_loss = loss_meter.avg
+        valid_time = time_elapsed_since(valid_start)[0]
+
+        return valid_loss, valid_time
+
+
+    def train(self, train_loader, valid_loader):
         """Trains model on training set."""
 
         self.model.train(True)
-        train_loss, train_acc, valid_acc, test_acc = [], [], [], []
+
+        num_batches = len(train_loader)
+        assert num_batches % self.p.report_interval == 0, 'Report interval must divide total number of batches'
+        # train_loss, train_acc, valid_acc, test_acc = [], [], [], []
 
         # Main training loop
         start = datetime.now()
         for epoch in range(self.p.nb_epochs):
+            print('EPOCH {:d} / {:d}'.format(epoch + 1, self.p.nb_epochs))
+
             # Some statistics trackers
             epoch_start = datetime.now()
             loss_meter = AvgMeter()
             time_meter = AvgMeter()
 
             # Minibatch SGD
-            for batch_idx, (x, y) in enumerate(data_loader):
-                progress_bar(batch_idx, self.p.batch_report)
+            for batch_idx, (source, target) in enumerate(train_loader):
+                progress_bar(batch_idx, num_batches, self.p.report_interval, loss_meter.val)
+                batch_start = datetime.now()
 
-                x, y = Variable(x), Variable(y)
                 if torch.cuda.is_available() and self.p.cuda:
-                    x = x.cuda()
-                    y = y.cuda()
+                    source = source.cuda()
+                    target = target.cuda()
 
-                loss = self.loss(y_pred, y)
-                batch_loss.update(loss)
+                # Denoise image
+                source_denoised = self.model(source)
+                loss = self.loss(source_denoised, target)
+                loss_meter.update(loss.item())
 
                 # Zero gradients, perform a backward pass, and update the weights
                 self.optim.zero_grad()
                 loss.backward()
                 self.optim.step()
 
-                # Report statistics
-                if batch_idx % self.p.batch_report == 0 and batch_idx:
-                    show_training_stats(batch_idx, self.num_batches, loss_meter.avg, time_meter.avg)
+                # Report/update statistics
+                time_meter.update(time_elapsed_since(batch_start)[1])
+                if batch_idx % self.p.report_interval == 0 and batch_idx:
+                    show_on_report(batch_idx, num_batches, loss_meter.avg, time_meter.avg)
                     loss_meter.reset()
                     time_meter.reset()
 
-            # Save model
-            clear_line()
-            print('Elapsed time for epoch: {}'.format(time_elapsed_since(epoch_start)))
-            self.model.save_model(self.p.ckpt_path, epoch)
-            self.eval()
+            # Evaluate model on validation set
+            print('\nTesting model on validation set... ', end='')
+            epoch_time = time_elapsed_since(epoch_start)[0]
+            valid_loss, valid_time = self.eval(valid_loader)
+            show_on_epoch_end(epoch_time, valid_time, valid_loss)
 
-        elapsed = time_elapsed_since(start)
+            # Save checkpoint
+            self.save_model(epoch, valid_loss)
+
+        elapsed = time_elapsed_since(start)[0]
         print('Training done! Total elapsed time: {}\n'.format(elapsed))
-
-        return train_loss
-
-
-def load_datasets(root_dir, batch_size):
-    """Load training and validation tests."""
-
-    # Training set
-    train_dir = os.path.join(root_dir, 'train')
-    train_loader = load_noisy_dataset(train_dir, batch_size, crops=256, shuffled=True)
-
-    # Validation set
-    valid_dir = os.path.join(root_dir, 'valid')
-    valid_loader = load_noisy_dataset(valid_dir, batch_size, crops=0, shuffled=False)
-
-    # Dataset lengths
-    lens = {}
-    lens['train_len'] = len(train_loader) * batch_size
-    lens['valid_len'] = len(valid_loader) * batch_size
-
-    return train_loader, valid_loader, lens
 
 
 def parse_args():
@@ -147,12 +209,17 @@ def parse_args():
     # New parser
     parser = ArgumentParser(description='PyTorch implementation of Noise2Noise from Lehtinen et al. (2018)')
 
-    # Data parameters
+    # Data training parameters
     parser.add_argument('-d', '--data', help='dataset path', default='../data')
-    parser.add_argument('--ckpt-path', help='checkpoint path', default='ckpts')
-    parser.add_argument('--batch-report', help='batch report interval', default=500, type=int)
+    parser.add_argument('--ckpt-save-path', help='checkpoint save path', default='../ckpts')
+    parser.add_argument('--ckpt-overwrite', help='overwrite model checkpoint on save', default=False, type=bool)
+    parser.add_argument('--report-interval', help='batch report interval', default=500, type=int)
+    parser.add_argument('-r', '--redux', help='use smaller datasets', default=False, type=bool)
 
-    # Training parameters
+    # Test parameters
+    parser.add_argument('--load-ckpt', help='load model checkpoint')
+
+    # Training hyperparameters
     parser.add_argument('-lr', '--learning-rate', help='learning rate', default=0.0003, type=float)
     parser.add_argument('-a', '--adam', help='adam parameters', nargs='+', default=[0.9, 0.99, 1e-8], type=list)
     parser.add_argument('-b', '--batch-size', help='minibatch size', default=4, type=int)
@@ -161,27 +228,51 @@ def parse_args():
     parser.add_argument('--cuda', help='use cuda', default=True, type=bool)
 
     # Corruption noise parameters
-    parser.add_argument('-n', '--noise-distrib', help='noise distribution',
-            choices=['gaussian', 'poisson', 'mc'], default='gaussian', type=str)
-    parser.add_argument('-v', '--noise-variance', help='noise variance', default=50.0, type=float)
+    parser.add_argument('-n', '--noise-type', help='noise type',
+            choices=['gaussian', 'poisson', 'text', 'mc'], default='gaussian', type=str)
+    parser.add_argument('-v', '--noise-param', help='noise parameter (e.g. sigma for gaussian)', default=50.0, type=float)
+    parser.add_argument('-c', '--crop-size', help='random crop size', default=256, type=int)
+    parser.add_argument('--clean-targets', help='use clean targets in training', default=False, type=bool)
 
     return parser.parse_args()
 
 
-if __name__ == '__main__':
-    """Launches training."""
+def load_dataset(name, params, shuffled=False, single=False):
+    """Loads dataset and returns corresponding data loader."""
 
+    noise = (params.noise_type, params.noise_param)
+    img_dir = '{}_redux'.format(name) if params.redux else name
+    path = os.path.join(params.data, img_dir)
+    dataset = N2NDataset(path, params.crop_size, noise_dist=noise, clean_targets=params.clean_targets)
+
+    if single:
+        return DataLoader(dataset, batch_size=1, shuffle=shuffled)
+    else:
+        return DataLoader(dataset, batch_size=params.batch_size, shuffle=shuffled)
+
+
+if __name__ == '__main__':
+    """Main program."""
+
+    # Parse training parameters
     params = parse_args()
 
-    # Read datasets
-    train_path = os.path.join(params.data, 'train')
-    valid_path = os.path.join(params.data, 'valid')
-    train_dataset = N2NDataset(train_path, noise_dist=('gaussian', 50))
-    valid_dataset = N2NDataset(valid_path, noise_dist=('gaussian', 50))
+    # Train/valid datasets
+    train_loader = load_dataset('train', params, shuffled=True)
+    valid_loader = load_dataset('valid', params, shuffled=False)
 
-    x, y = train_dataset[0]
-    x.show()
-    y.show()
+    # Initialize model
+    n2n = Noise2Noise(params)
 
-    # Train
-    #model.train(train_loader)
+    # Test dataset, if trained model checkpoint is specified
+    if params.load_ckpt:
+        params.redux = False
+        params.clean_targets = True
+        params.crop_size = 512
+        test_loader = load_dataset('test', params, shuffled=False, single=True)
+
+        n2n.denoise(test_loader)
+
+    # Otherwise, train
+    else:
+        n2n.train(train_loader, valid_loader)
