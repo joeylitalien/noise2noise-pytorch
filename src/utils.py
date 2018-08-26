@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from torchvision import transforms
-from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader
-
 import numpy as np
 from datetime import datetime
 
@@ -18,11 +14,11 @@ def clear_line():
 def progress_bar(batch_idx, num_batches, report_interval, train_loss):
     """Neat progress bar to track training."""
 
-    dec = str(int(np.ceil(np.log10(num_batches))))
-    bar_size = 22 + int(dec)
-    progress = (((batch_idx - 1) % report_interval) + 1) / report_interval
-    fill = int(progress * bar_size)
-    print('\rBatch {:>{dec}d} [{}{}] Train loss: {:>1.5f}'.format(batch_idx, '=' * fill, ' ' * (bar_size - fill), train_loss, dec=dec), end='')
+    dec = int(np.ceil(np.log10(num_batches)))
+    bar_size = 21 + dec
+    progress = (batch_idx % report_interval) / report_interval
+    fill = int(progress * bar_size) + 1
+    print('\rBatch {:>{dec}d} [{}{}] Train loss: {:>1.5f}'.format(batch_idx + 1, '=' * fill + '>', ' ' * (bar_size - fill), train_loss, dec=str(dec)), end='')
 
 
 def time_elapsed_since(start):
@@ -35,11 +31,11 @@ def time_elapsed_since(start):
     return string, ms
 
 
-def show_on_epoch_end(epoch_time, valid_time, valid_loss):
+def show_on_epoch_end(epoch_time, valid_time, valid_loss, psnr):
     """Formats validation error stats."""
 
     clear_line()
-    print('Epoch train time: {} | Epoch valid time: {} | Valid loss: {:>1.5f}'.format(epoch_time, valid_time, valid_loss))
+    print('Train time: {} | Valid time: {} | Valid loss: {:>1.5f} | Avg PSNR: {:.2f} dB'.format(epoch_time, valid_time, valid_loss, psnr))
 
 
 def show_on_report(batch_idx, num_batches, loss, elapsed):
@@ -47,7 +43,7 @@ def show_on_report(batch_idx, num_batches, loss, elapsed):
 
     clear_line()
     dec = str(int(np.ceil(np.log10(num_batches))))
-    print('Batch {:>{dec}d} / {:d} | Avg loss: {:>1.5f} | Avg time / batch: {:d} ms'.format(batch_idx,
+    print('Batch {:>{dec}d} / {:d} | Avg loss: {:>1.5f} | Avg time / batch: {:d} ms'.format(batch_idx + 1,
                                                                                         num_batches, loss, int(elapsed),
                                                                                         dec=dec))
 
