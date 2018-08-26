@@ -48,7 +48,7 @@ Model checkpoints are automatically savec after every epoch. To test the denoise
 See `test.sh` for an example.
 
 ## To do list
-- [ ] Test Guassian noise and text overlay thoroughly so they work as intended
+- [ ] Test Gaussian noise and text overlay thoroughly so they work as intended
 - [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
 - [ ] Implement Poisson noise with L2 loss
 - [ ] Add *p* parameter to train/valid routines
