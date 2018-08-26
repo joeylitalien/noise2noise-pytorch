@@ -9,33 +9,56 @@ This is a *weekend (partial and unfinished)* PyTorch implementation of [Noise2No
 * [matplotlib](https://matplotlib.org/) (2.2.3)
 * [Pillow](https://pillow.readthedocs.io/en/latest/index.html) (5.2.0)
 
-Tested on Python 3.6.5. Code *will* fail on Python 2.7.x.
+Tested on Python 3.6.5 on macOS High Sierra (10.13.4). Code will fail on Python 2.7.x due to usage of 3.6-specific functions. Should work on Linux. Note that code will also fail on Windows out of the box due to differences in path resolver (`os.path`).
 
 ## Dataset
 
-The authors use [ImageNet](http://image-net.org/download), but any dataset will do. [COCO 2017](http://cocodataset.org/#download) has a small validation set (1GB) which can be nicely split into train/valid/test for easier training.
+The authors use [ImageNet](http://image-net.org/download), but any dataset will do. [COCO 2017](http://cocodataset.org/#download) has a small validation set (1 GB) which can be nicely split into train/valid for easier training:
+```
+mkdir data && cd data
+mkdir all train valid test
+wget http://images.cocodataset.org/zips/val2017.zip
+unzip val2017.zip -d train
+mv 'ls train | head -800' valid
+remove *.zip
+```
+
+You can also download the full datasets (17 GB), if you have the bandwidth:
+
+```
+mkdir data && cd data
+mkdir train valid test
+wget http://images.cocodataset.org/zips/train2017.zip
+wget http://images.cocodataset.org/zips/val2017.zip
+unzip train2017.zip -d train
+unzip val2017.zip -d valid
+rm *.zip
+```
+
+Add your favorite images to the `data/test` folder. Only a handful will do to visually inspect.
 
 ## Training
 
 See `python3 train.py --h` for list of optional arguments, or `examples/train.sh` for an example.
 
-By default, the model train with noisy targets. To train with clean targets, use `--clean-targets`. The program assumes that the directory passed to `--data` contains subdirectories `train` and `valid`. To train and validate on smaller datasets, create `train_redux` and `valid_redux`, and use the `--redux` option.
+By default, the model train with noisy targets. To train with clean targets, use `--clean-targets`. The program assumes that the directory passed to `--data` contains subdirectories `train` and `valid`. To train and validate on smaller datasets, use the `--train-size` and `--valid-size` options. To plot stats as the model trains, use `--plot-stats`.
 
 ### Gaussian noise
 The noise parameter is the maximum standard deviation σ.
 ```
 python3 train.py \
-  --data ./../data \
+  --ckpt-save-path ../ckpts \
+  --data ../data --train-size 500 --valid-size 100 \
   --noise-type gaussian \
   --noise-param 50 \
-  --crop-size 64
+  --crop-size 64 \
+  --plot-stats
 ```
 
 ### Poisson noise
 The noise parameter is the Poisson parameter λ.
 ```
 python3 train.py
-  --data ./../data \
   --noise-type poisson \
   --noise-param 50 \
   --crop-size 64
@@ -45,7 +68,6 @@ python3 train.py
 The noise parameter is the number of text artifacts overlayed.
 ```
 python3 train.py \
-  --data ./../data \
   --noise-type text \
   --noise-param 50 \
   --crop-size 64
@@ -56,9 +78,9 @@ python3 train.py \
 Model checkpoints are automatically saved after every epoch. To test the denoiser, simply pass a PyTorch model (`.pt` file) to `--load-ckpt`. This assumes the existence of a `test` directory under your data folder. The `--show-output` option specifies the number of noisy/denoised/clean montages to display. To disable this, simply remove `--show-output`.
 
 ```
-python3 ../test.py \
-  --data ../../data \
-  --load-ckpt ../../ckpts/gaussian/n2n.pt \
+python3 test.py \
+  --data ../data \
+  --load-ckpt ../ckpts/gaussian/n2n.pt \
   --noise-type gaussian \
   --noise-param 50 \
   --crop-size 256 \
