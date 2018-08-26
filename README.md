@@ -10,6 +10,11 @@ This is a *weekend (partial and unfinished)* PyTorch implementation of [Noise2No
 * [matplotlib](https://matplotlib.org/) (2.2.3)
 * [Pillow](https://pillow.readthedocs.io/en/latest/index.html) (5.2.0)
 
+To install the latest version of all packages, run
+```
+pip3 install --user -r requirements.txt
+```
+
 This code was tested on Python 3.6.5 on macOS High Sierra (10.13.4). It *will* fail on Python 2.7.x due to usage of 3.6-specific functions. Note that training and testing will also fail on Windows out of the box due to differences in path resolver (`os.path`).
 
 ## Dataset
