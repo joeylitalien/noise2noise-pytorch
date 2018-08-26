@@ -1,6 +1,13 @@
 # Noise2Noise
 This is a *weekend (partial and unfinished)* PyTorch implementation of [Noise2Noise](https://arxiv.org/abs/1803.04189) (Lehtinen et al. 2018. As such, it is still very much a work-in-progress.
 
+## Dependencies
+* [numpy](http://www.numpy.org/) (1.14.2)
+* [torch](https://pytorch.org/) (0.4.1)
+* [torchvision](https://pytorch.org/docs/stable/torchvision/index.html) (0.2.0)
+* [matplotlib](https://matplotlib.org/) (2.2.3)
+* [Pillow](https://pillow.readthedocs.io/en/latest/index.html) (5.2.0)
+
 ## Dataset
 
 The authors use [ImageNet](http://image-net.org/download), but any dataset will do. [COCO 2017](http://cocodataset.org/#download) has a small validation set (1GB) which can be nicely split into train/valid/test for easier training.
