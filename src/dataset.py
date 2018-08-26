@@ -12,6 +12,8 @@ import numpy as np
 from random import choice
 from string import ascii_letters
 from PIL import Image, ImageFont, ImageDraw
+from matplotlib import rcParams
+rcParams['font.family'] = 'serif'
 import matplotlib.pyplot as plt
 
 
@@ -53,7 +55,7 @@ def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show):
     zipped = zip(titles, [noisy, denoised, clean])
     for j, (title, img) in enumerate(zipped):
         ax[j].imshow(img)
-        ax[j].set_title(title, fontname='serif')
+        ax[j].set_title(title)
         ax[j].axis('off')
 
     # Open pop up window, if requested
@@ -62,19 +64,19 @@ def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show):
 
     # Save to files
     fname = os.path.splitext(img_name)[0]
-    noisy.save(os.path.join(save_path, '{}_noisy.png'.format(fname)))
-    denoised.save(os.path.join(save_path, '{}_denoised.png'.format(fname)))
-    fig.savefig(os.path.join(save_path, '{}_montage.png'.format(fname)), bbox_inches='tight')
+    noisy.save(os.path.join(save_path, '{}-noisy.png'.format(fname)))
+    denoised.save(os.path.join(save_path, '{}-denoised.png'.format(fname)))
+    fig.savefig(os.path.join(save_path, '{}-montage.png'.format(fname)), bbox_inches='tight')
 
 
-def load_dataset(name, params, shuffled=False, single=False):
+def load_dataset(img_dir, redux, params, shuffled=False, single=False):
     """Loads dataset and returns corresponding data loader."""
 
     # Create Torch dataset
     noise = (params.noise_type, params.noise_param)
-    img_dir = '{}_redux'.format(name) if params.redux else name
     path = os.path.join(params.data, img_dir)
-    dataset = N2NDataset(path, params.crop_size, noise_dist=noise, clean_targets=params.clean_targets)
+    dataset = N2NDataset(path, redux, params.crop_size, noise_dist=noise,
+                    clean_targets=params.clean_targets)
 
     # Use batch size of 1, if needed (e.g. test set)
     if single:
@@ -86,13 +88,15 @@ def load_dataset(name, params, shuffled=False, single=False):
 class N2NDataset(Dataset):
     """Class for injecting random noise into dataset."""
 
-    def __init__(self, root_dir, crop_size=256, noise_dist=('gaussian', 50.), clean_targets=False):
+    def __init__(self, root_dir, redux, crop_size=128, noise_dist=('gaussian', 50.), clean_targets=False):
         """Initializes noisy image dataset."""
 
         super(N2NDataset, self).__init__()
 
         self.root_dir = root_dir
         self.imgs = os.listdir(root_dir)
+        if redux:
+            self.imgs = self.imgs[:redux]
         self.crop_size = crop_size
 
         # Noise parameters (max std for Gaussian, lambda for Poisson, nb of artifacts for text)

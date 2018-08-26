@@ -60,7 +60,8 @@ class Noise2Noise(object):
     def _print_params(self):
         """Formats parameters to print when training."""
 
-        print('Parameters:')
+        print('Training parameters:')
+        self.p.cuda = self.use_cuda
         param_dict = vars(self.p)
         pretty = lambda x: x.replace('_', ' ').replace('ckpt ', 'checkpoint ').capitalize()
         print('\n'.join('  {} = {}'.format(pretty(k), pretty(str(v))) for k, v in param_dict.items()))
@@ -72,22 +73,21 @@ class Noise2Noise(object):
 
         # Create directory for model checkpoints, if nonexistent
         if first:
-            timestamp = f'{datetime.now():{self.p.noise_type}-%y%m%d%H%M}'
+            timestamp = f'{datetime.now():{self.p.noise_type}-%y%m%d-%H%M}'
             self.ckpt_dir = os.path.join(self.p.ckpt_save_path, timestamp)
             if not os.path.isdir(self.ckpt_dir):
                 os.mkdir(self.ckpt_dir)
 
         if self.p.ckpt_overwrite:
-            fname_unet = '{}/n2n_{}.pt'.format(self.ckpt_dir, self.p.noise_type)
+            fname_unet = '{}/n2n-{}.pt'.format(self.ckpt_dir, self.p.noise_type)
         else:
             valid_loss = stats['valid_loss'][epoch]
-            fname_unet = '{}/n2n_epoch{}_{:>1.5f}.pt'.format(self.ckpt_dir, epoch + 1, valid_loss)
-        print('Saving checkpoint to: {}'.format(fname_unet))
+            fname_unet = '{}/n2n-epoch{}-{:>1.5f}.pt'.format(self.ckpt_dir, epoch + 1, valid_loss)
+        print('Saving checkpoint to: {}\n'.format(fname_unet))
         torch.save(self.model.state_dict(), fname_unet)
 
         # Save stats to JSON
-        fname_dict = '{}/n2n_stats.json'.format(self.ckpt_dir)
-        print('Saving statistics to: {}\n'.format(fname_dict))
+        fname_dict = '{}/n2n-stats.json'.format(self.ckpt_dir)
         with open(fname_dict, 'w') as fp:
             json.dump(stats, fp, indent=2)
 
@@ -238,6 +238,12 @@ class Noise2Noise(object):
             stats['valid_loss'].append(valid_loss)
             stats['valid_psnr'].append(valid_psnr)
             self.save_model(epoch, stats, epoch == 0)
+
+            # Plot stats
+            if self.p.plot_stats:
+                loss_str = f'{self.p.loss} loss'.capitalize()
+                plot_per_epoch(self.ckpt_dir, 'Valid loss', stats['valid_loss'], loss_str)
+                plot_per_epoch(self.ckpt_dir, 'Valid PSNR', stats['valid_psnr'], 'PSNR (dB)')
 
         elapsed = time_elapsed_since(start)[0]
         print('Training done! Total elapsed time: {}\n'.format(elapsed))

@@ -23,7 +23,8 @@ def parse_args():
     parser.add_argument('--ckpt-save-path', help='checkpoint save path', default='../ckpts')
     parser.add_argument('--ckpt-overwrite', help='overwrite model checkpoint on save', action='store_true')
     parser.add_argument('--report-interval', help='batch report interval', default=500, type=int)
-    parser.add_argument('-r', '--redux', help='use smaller datasets', action='store_true')
+    parser.add_argument('-ts', '--train-size', help='size of train dataset', type=int)
+    parser.add_argument('-vs', '--valid-size', help='size of valid dataset', type=int)
 
     # Training hyperparameters
     parser.add_argument('-lr', '--learning-rate', help='learning rate', default=0.0003, type=float)
@@ -32,6 +33,7 @@ def parse_args():
     parser.add_argument('-e', '--nb-epochs', help='number of epochs', default=100, type=int)
     parser.add_argument('-l', '--loss', help='loss function', choices=['l1', 'l2', 'rmse'], default='l1', type=str)
     parser.add_argument('--cuda', help='use cuda', default=True, type=bool)
+    parser.add_argument('--plot-stats', help='plot stats on the fly', action='store_true')
 
     # Corruption parameters
     parser.add_argument('-n', '--noise-type', help='noise type',
@@ -50,8 +52,8 @@ if __name__ == '__main__':
     params = parse_args()
 
     # Train/valid datasets
-    train_loader = load_dataset('train', params, shuffled=True)
-    valid_loader = load_dataset('valid', params, shuffled=False)
+    train_loader = load_dataset('train', params.train_redux, params, shuffled=True)
+    valid_loader = load_dataset('valid', params.valid_redux, params, shuffled=False)
 
     # Initialize model and train
     n2n = Noise2Noise(params, trainable=True)

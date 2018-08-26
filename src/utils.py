@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import numpy as np
 from datetime import datetime
+from matplotlib import rcParams
+rcParams['font.family'] = 'serif'
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 
 def clear_line():
@@ -46,6 +51,23 @@ def show_on_report(batch_idx, num_batches, loss, elapsed):
     print('Batch {:>{dec}d} / {:d} | Avg loss: {:>1.5f} | Avg train time / batch: {:d} ms'.format(batch_idx + 1,
                                                                                         num_batches, loss, int(elapsed),
                                                                                         dec=dec))
+
+
+def plot_per_epoch(ckpt_dir, title, measurements, y_label):
+    """Plots stats (train/valid loss, avg PSNR, etc.)."""
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(range(1, len(measurements) + 1), measurements)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel(y_label)
+    ax.set_title(title)
+    plt.tight_layout()
+
+    fname = '{}.png'.format(title.replace(' ', '-').lower())
+    plot_fname = os.path.join(ckpt_dir, fname)
+    plt.savefig(plot_fname, dpi=200)
 
 
 class AvgMeter(object):
