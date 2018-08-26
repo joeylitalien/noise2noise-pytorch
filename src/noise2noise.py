@@ -24,16 +24,11 @@ class Noise2Noise(object):
 
         self.p = params
 
-        # Create directory for model checkpoints
-        ckpts_dir = os.path.join(params.ckpt_save_path, params.noise_type)
-        if not os.path.isdir(ckpts_dir):
-            os.mkdir(ckpts_dir)
-
         # Get ready to ruummmbbbbbble
-        self.compile()
+        self._compile()
 
 
-    def compile(self):
+    def _compile(self):
         """Compiles model (architecture, loss function, optimizers, etc.)."""
 
         # Model
@@ -59,14 +54,30 @@ class Noise2Noise(object):
             self.loss = self.loss.cuda()
 
 
-    def save_model(self, epoch, valid_loss):
+    def _format_header(self):
+        """Formats header to print when training."""
+
+        print('Noise2Noise (Lethinen et al. 2018)')
+        param_dict = vars(self.p)
+        pretty = lambda x: x.capitalize().replace('_', ' ')
+        print('\n'.join('  {} = {}'.format(pretty(k), pretty(str(v))) for k, v in param_dict.items()))
+        print()
+
+
+    def save_model(self, epoch, valid_loss, first=False):
         """Saves model to files; can be overwritten at every epoch to save disk space."""
 
-        ckpt_dir = os.path.join(self.p.ckpt_save_path, self.p.noise_type)
+        # Create directory for model checkpoints, if nonexistent
+        if first:
+            timestamp = f'{datetime.now():{params.noise_type}-%y%m%d%H%M}'
+            self.ckpt_dir = os.path.join(params.ckpt_save_path, timestamp)
+            if not os.path.isdir(self.ckpt_dir):
+                os.mkdir(self.ckpt_dir)
+
         if self.p.ckpt_overwrite:
-            fname_unet = '{}/n2n_{}.pt'.format(ckpt_dir, self.p.noise_type)
+            fname_unet = '{}/n2n_{}.pt'.format(self.ckpt_dir, self.p.noise_type)
         else:
-            fname_unet = '{}/n2n_{}_epoch{}_{:>1.5f}.pt'.format(ckpt_dir, self.p.noise_type, epoch + 1, valid_loss)
+            fname_unet = '{}/n2n_epoch{}_{:>1.5f}.pt'.format(self.ckpt_dir, epoch + 1, valid_loss)
         print('Saving checkpoint to: {}\n'.format(fname_unet))
         torch.save(self.model.state_dict(), fname_unet)
 
@@ -81,7 +92,7 @@ class Noise2Noise(object):
             self.model.load_state_dict(torch.load(ckpt_fname, map_location='cpu'))
 
 
-    def denoise(self, test_loader):
+    def test(self, test_loader, show=True):
         """Evaluates denoiser on test set."""
 
         self.model.train(False)
@@ -91,9 +102,9 @@ class Noise2Noise(object):
         clean_imgs = []
 
         # Create directory for denoised images
-        denoised_dir = os.path.join(params.data, 'denoised')
-        if not os.path.isdir(denoised_dir):
-            os.mkdir(denoised_dir)
+        save_path = os.path.join(params.data, 'denoised')
+        if not os.path.isdir(save_path):
+            os.mkdir(save_path)
 
         for batch_idx, (source, target) in enumerate(test_loader):
             # Only do first 4 images, for now
@@ -115,8 +126,10 @@ class Noise2Noise(object):
         denoised_imgs = [t.squeeze(0) for t in denoised_imgs]
         clean_imgs = [t.squeeze(0) for t in clean_imgs]
 
+        # Create montage and save images
         for i in range(len(noisy_imgs)):
-            create_montage(noisy_imgs[i], denoised_imgs[i], clean_imgs[i], show=True)
+            img_name = test_loader.dataset.imgs[i]
+            create_montage(img_name, save_path, noisy_imgs[i], denoised_imgs[i], clean_imgs[i], show)
 
 
     def eval(self, valid_loader):
@@ -153,6 +166,7 @@ class Noise2Noise(object):
 
         self.model.train(True)
 
+        self._format_header()
         num_batches = len(train_loader)
         assert num_batches % self.p.report_interval == 0, 'Report interval must divide total number of batches'
 
@@ -192,9 +206,6 @@ class Noise2Noise(object):
                     loss_meter.reset()
                     time_meter.reset()
 
-                # Simple progress bar
-                # progress_bar(batch_idx, num_batches, self.p.report_interval, loss_meter.val)
-
             # Evaluate model on validation set
             print('\rTesting model on validation set... ', end='')
             epoch_time = time_elapsed_since(epoch_start)[0]
@@ -202,7 +213,7 @@ class Noise2Noise(object):
             show_on_epoch_end(epoch_time, valid_time, valid_loss, psnr)
 
             # Save checkpoint
-            self.save_model(epoch, valid_loss)
+            self.save_model(epoch, valid_loss, epoch == 0)
 
         elapsed = time_elapsed_since(start)[0]
         print('Training done! Total elapsed time: {}\n'.format(elapsed))
@@ -211,6 +222,7 @@ class Noise2Noise(object):
 def load_dataset(name, params, shuffled=False, single=False):
     """Loads dataset and returns corresponding data loader."""
 
+    # Create Torch dataset
     noise = (params.noise_type, params.noise_param)
     img_dir = '{}_redux'.format(name) if params.redux else name
     path = os.path.join(params.data, img_dir)
@@ -238,6 +250,7 @@ def parse_args():
 
     # Test parameters
     parser.add_argument('--load-ckpt', help='load model checkpoint (specify to infer)')
+    parser.add_argument('--show-output', help='pop up window to show output on test', default=True, type=bool)
 
     # Training hyperparameters
     parser.add_argument('-lr', '--learning-rate', help='learning rate', default=0.0003, type=float)
@@ -274,10 +287,10 @@ if __name__ == '__main__':
     if params.load_ckpt:
         params.redux = False
         params.clean_targets = True
-        params.crop_size = 512
+        params.crop_size = 256
         test_loader = load_dataset('test', params, shuffled=False, single=True)
         n2n.load_model(params.load_ckpt)
-        n2n.denoise(test_loader)
+        n2n.test(test_loader, show=params.show_output)
 
     # Otherwise, train model
     else:
