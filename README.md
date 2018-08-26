@@ -43,7 +43,7 @@ python3 noise2noise.py \
 
 ## Testing
 
-Model checkpoints are automatically savec after every epoch. To test the denoiser on a test set, simply pass a PyTorch model (.pt file) to `--load-ckpt`. This assumes the existence of a `test` directory under your data folder. By default, a montage of noisy/denoised/clean images is output to the screen. To disable this, set the `--show-output` flag to false.
+Model checkpoints are automatically saved after every epoch. To test the denoiser, simply pass a PyTorch model (.pt file) to `--load-ckpt`. This assumes the existence of a `test` directory under your data folder. By default, a montage of noisy/denoised/clean images is output to the screen. To disable this, set the `--show-output` flag to false.
 
 See `test.sh` for an example.
 
