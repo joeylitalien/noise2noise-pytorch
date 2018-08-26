@@ -54,3 +54,4 @@ See `test.sh` for an example.
 - [ ] Add *p* parameter to train/valid routines
 - [ ] Track validation loss and PSNR over time to plot
 - [ ] Implement Monte Carlo rendering noise (will require HDR-specific methods)
+- [ ] Test RedNet baseline (low priority)
