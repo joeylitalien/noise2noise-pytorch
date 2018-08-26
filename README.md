@@ -1,5 +1,5 @@
 # Noise2Noise
-PyTorch (partial and unfinished) implementation of [Noise2Noise](https://arxiv.org/abs/1803.04189) (Lehtinen et al. 2018)
+Partial and unfinished PyTorch implementation of [Noise2Noise](https://arxiv.org/abs/1803.04189) (Lehtinen et al. 2018)
 
 # Training
 
