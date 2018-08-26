@@ -1,5 +1,5 @@
 # Noise2Noise
-Partial and unfinished PyTorch implementation of [Noise2Noise](https://arxiv.org/abs/1803.04189) (Lehtinen et al. 2018)
+This is a *partial and unfinished* PyTorch implementation of [Noise2Noise](https://arxiv.org/abs/1803.04189) (Lehtinen et al. 2018).
 
 ## Dataset
 
@@ -44,3 +44,13 @@ python3 noise2noise.py \
 ## Testing
 
 Model checkpoints are automatically savec after every epoch. To test the denoiser on a test set, simply pass a PyTorch model (.pt file) to `--load-ckpt`. This assumes the existence of a `test` directory under your data folder. By default, a montage of noisy/denoised/clean images is output to the screen. To disable this, set the `--show-output` flag to false.
+
+See `test.sh` for an example.
+
+## To do list
+- [ ] Test Guassian noise and text overlay thoroughly so they work as intended
+- [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
+- [ ] Implement Poisson noise with L2 loss
+- [ ] Add *p* parameter to train/valid routines
+- [ ] Track validation loss and PSNR over time to plot
+- [ ] Implement Monte Carlo rendering noise (will require HDR-specific methods)
