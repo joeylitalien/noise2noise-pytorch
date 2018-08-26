@@ -52,6 +52,8 @@ class RedNet(nn.Module):
         from conv feature maps to their mirrored deconv feature maps.
         """
 
+        # TODO: Use torch.concatenate!
+
         # Forward convolution pass
         convs = []
         convs.append(self._conv1(x))

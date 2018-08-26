@@ -15,7 +15,7 @@ class UNet(nn.Module):
 
         # Layers: enc_conv0, enc_conv1, pool1
         self._block1 = nn.Sequential(
-            nn.Conv2d(channels, 48, 3, padding=1),
+            nn.Conv2d(channels, 48, 3, stride=1, padding=1),
             nn.Conv2d(48, 48, 3, padding=1),
             nn.MaxPool2d(2))
 
@@ -39,8 +39,8 @@ class UNet(nn.Module):
 
         # Layers: dec_deconv(i)a, dec_deconv(i)b, upsample(i-1); i=4..2
         self._block5 = nn.Sequential(
-            nn.Conv2d(144, 96, 3, padding=1),
-            nn.Conv2d(96, 96, 3, padding=1),
+            nn.Conv2d(144, 96, 3, stride=1, padding=1),
+            nn.Conv2d(96, 96, 3, stride=1, padding=1),
             nn.ConvTranspose2d(96, 96, 3, stride=2, padding=1, output_padding=1))
             #nn.Upsample(scale_factor=2, mode='nearest')
 

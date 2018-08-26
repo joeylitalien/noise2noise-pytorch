@@ -4,7 +4,6 @@
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from torch.utils.data import DataLoader
 
 from unet import UNet
 from rednet import RedNet
@@ -12,6 +11,7 @@ from utils import *
 from dataset import *
 
 import os
+import json
 from argparse import ArgumentParser
 import matplotlib.pyplot as plt
 
@@ -19,80 +19,90 @@ import matplotlib.pyplot as plt
 class Noise2Noise(object):
     """Implementation of Noise2Noise from Lehtinen et al. (2018)."""
 
-    def __init__(self, params):
+    def __init__(self, params, trainable):
         """Initializes model."""
 
         self.p = params
-
-        # Get ready to ruummmbbbbbble
+        self.trainable = trainable
         self._compile()
 
 
     def _compile(self):
         """Compiles model (architecture, loss function, optimizers, etc.)."""
 
+        print('Noise2Noise: Learning Image Restoration without Clean Data (Lethinen et al. 2018)')
+
         # Model
         self.model = UNet()
 
-        # Optimizer
-        self.optim = Adam(self.model.parameters(),
-                lr=self.p.learning_rate,
-                betas=self.p.adam[:2],
-                eps=self.p.adam[2])
+        if self.trainable:
+            # Optimizer
+            self.optim = Adam(self.model.parameters(),
+                                lr=self.p.learning_rate,
+                                betas=self.p.adam[:2],
+                                eps=self.p.adam[2])
 
-        # Loss function
-        if self.p.loss == 'rmse':
-            raise NotImplementedError('rMSE loss not implemented yet!')
-        elif self.p.loss == 'l2':
-            raise NotImplementedError('L2 loss not implemented yet!')
-        else:
-            self.loss = nn.L1Loss()
+            # Loss function
+            if self.p.loss == 'rmse':
+                raise NotImplementedError('rMSE loss not implemented yet!')
+            elif self.p.loss == 'l2':
+                self.loss = nn.MSELoss()
+            else:
+                self.loss = nn.L1Loss()
 
         # CUDA support
-        if torch.cuda.is_available() and self.p.cuda:
+        self.use_cuda = torch.cuda.is_available() and self.p.cuda
+        if self.use_cuda:
             self.model = self.model.cuda()
             self.loss = self.loss.cuda()
 
 
-    def _format_header(self):
-        """Formats header to print when training."""
+    def _print_params(self):
+        """Formats parameters to print when training."""
 
-        print('Noise2Noise (Lethinen et al. 2018)')
+        print('Parameters:')
         param_dict = vars(self.p)
-        pretty = lambda x: x.capitalize().replace('_', ' ')
+        pretty = lambda x: x.replace('_', ' ').replace('ckpt ', 'checkpoint ').capitalize()
         print('\n'.join('  {} = {}'.format(pretty(k), pretty(str(v))) for k, v in param_dict.items()))
         print()
 
 
-    def save_model(self, epoch, valid_loss, first=False):
+    def save_model(self, epoch, stats, first=False):
         """Saves model to files; can be overwritten at every epoch to save disk space."""
 
         # Create directory for model checkpoints, if nonexistent
         if first:
-            timestamp = f'{datetime.now():{params.noise_type}-%y%m%d%H%M}'
-            self.ckpt_dir = os.path.join(params.ckpt_save_path, timestamp)
+            timestamp = f'{datetime.now():{self.p.noise_type}-%y%m%d%H%M}'
+            self.ckpt_dir = os.path.join(self.p.ckpt_save_path, timestamp)
             if not os.path.isdir(self.ckpt_dir):
                 os.mkdir(self.ckpt_dir)
 
         if self.p.ckpt_overwrite:
             fname_unet = '{}/n2n_{}.pt'.format(self.ckpt_dir, self.p.noise_type)
         else:
+            valid_loss = stats['valid_loss'][epoch]
             fname_unet = '{}/n2n_epoch{}_{:>1.5f}.pt'.format(self.ckpt_dir, epoch + 1, valid_loss)
-        print('Saving checkpoint to: {}\n'.format(fname_unet))
+        print('Saving checkpoint to: {}'.format(fname_unet))
         torch.save(self.model.state_dict(), fname_unet)
+
+        # Save stats to JSON
+        fname_dict = '{}/n2n_stats.json'.format(self.ckpt_dir)
+        print('Saving statistics to: {}\n'.format(fname_dict))
+        with open(fname_dict, 'w') as fp:
+            json.dump(stats, fp, indent=2)
 
 
     def load_model(self, ckpt_fname):
         """Loads model from checkpoint file."""
 
         print('Loading checkpoint from: {}'.format(ckpt_fname))
-        if self.p.cuda:
+        if self.use_cuda:
             self.model.load_state_dict(torch.load(ckpt_fname))
         else:
             self.model.load_state_dict(torch.load(ckpt_fname, map_location='cpu'))
 
 
-    def test(self, test_loader, show=True):
+    def test(self, test_loader, show):
         """Evaluates denoiser on test set."""
 
         self.model.train(False)
@@ -102,19 +112,19 @@ class Noise2Noise(object):
         clean_imgs = []
 
         # Create directory for denoised images
-        save_path = os.path.join(params.data, 'denoised')
+        save_path = os.path.join(self.p.data, 'denoised')
         if not os.path.isdir(save_path):
             os.mkdir(save_path)
 
         for batch_idx, (source, target) in enumerate(test_loader):
-            # Only do first 4 images, for now
-            if batch_idx >= 4:
+            # Only show first <show> images
+            if show == 0 or batch_idx >= show:
                 break
 
             noisy_imgs.append(source)
             clean_imgs.append(target)
 
-            if torch.cuda.is_available() and self.p.cuda:
+            if self.use_cuda:
                 source = source.cuda()
 
             # Denoise
@@ -127,6 +137,7 @@ class Noise2Noise(object):
         clean_imgs = [t.squeeze(0) for t in clean_imgs]
 
         # Create montage and save images
+        print('Saving images and montages to: {}'.format(save_path))
         for i in range(len(noisy_imgs)):
             img_name = test_loader.dataset.imgs[i]
             create_montage(img_name, save_path, noisy_imgs[i], denoised_imgs[i], clean_imgs[i], show)
@@ -142,7 +153,7 @@ class Noise2Noise(object):
         psnr_meter = AvgMeter()
 
         for batch_idx, (source, target) in enumerate(valid_loader):
-            if torch.cuda.is_available() and self.p.cuda:
+            if self.use_cuda:
                 source = source.cuda()
                 target = target.cuda()
 
@@ -152,7 +163,7 @@ class Noise2Noise(object):
             # Update loss
             loss = self.loss(source_denoised, target)
             loss_meter.update(loss.item())
-            psnr_meter.update(psnr(source_denoised, target))
+            psnr_meter.update(psnr(source_denoised, target).item())
 
         valid_loss = loss_meter.avg
         valid_time = time_elapsed_since(valid_start)[0]
@@ -166,9 +177,16 @@ class Noise2Noise(object):
 
         self.model.train(True)
 
-        self._format_header()
+        self._print_params()
         num_batches = len(train_loader)
         assert num_batches % self.p.report_interval == 0, 'Report interval must divide total number of batches'
+
+        # Dictionaries of tracked stats
+        stats = {'noise_type': self.p.noise_type,
+                 'noise_param': self.p.noise_param,
+                 'train_loss': [],
+                 'valid_loss': [],
+                 'valid_psnr': []}
 
         # Main training loop
         start = datetime.now()
@@ -177,6 +195,7 @@ class Noise2Noise(object):
 
             # Some stats trackers
             epoch_start = datetime.now()
+            train_loss_meter = AvgMeter()
             loss_meter = AvgMeter()
             time_meter = AvgMeter()
 
@@ -185,7 +204,7 @@ class Noise2Noise(object):
                 batch_start = datetime.now()
                 progress_bar(batch_idx, num_batches, self.p.report_interval, loss_meter.val)
 
-                if torch.cuda.is_available() and self.p.cuda:
+                if self.use_cuda:
                     source = source.cuda()
                     target = target.cuda()
 
@@ -203,95 +222,22 @@ class Noise2Noise(object):
                 time_meter.update(time_elapsed_since(batch_start)[1])
                 if (batch_idx + 1) % self.p.report_interval == 0 and batch_idx:
                     show_on_report(batch_idx, num_batches, loss_meter.avg, time_meter.avg)
+                    train_loss_meter.update(loss_meter.avg)
                     loss_meter.reset()
                     time_meter.reset()
 
             # Evaluate model on validation set
             print('\rTesting model on validation set... ', end='')
             epoch_time = time_elapsed_since(epoch_start)[0]
-            valid_loss, valid_time, psnr = self.eval(valid_loader)
-            show_on_epoch_end(epoch_time, valid_time, valid_loss, psnr)
+            valid_loss, valid_time, valid_psnr = self.eval(valid_loader)
+            show_on_epoch_end(epoch_time, valid_time, valid_loss, valid_psnr)
 
             # Save checkpoint
-            self.save_model(epoch, valid_loss, epoch == 0)
+            stats['train_loss'].append(train_loss_meter.avg)
+            train_loss_meter.reset()
+            stats['valid_loss'].append(valid_loss)
+            stats['valid_psnr'].append(valid_psnr)
+            self.save_model(epoch, stats, epoch == 0)
 
         elapsed = time_elapsed_since(start)[0]
         print('Training done! Total elapsed time: {}\n'.format(elapsed))
-
-
-def load_dataset(name, params, shuffled=False, single=False):
-    """Loads dataset and returns corresponding data loader."""
-
-    # Create Torch dataset
-    noise = (params.noise_type, params.noise_param)
-    img_dir = '{}_redux'.format(name) if params.redux else name
-    path = os.path.join(params.data, img_dir)
-    dataset = N2NDataset(path, params.crop_size, noise_dist=noise, clean_targets=params.clean_targets)
-
-    # Use batch size of 1, if needed (e.g. test set)
-    if single:
-        return DataLoader(dataset, batch_size=1, shuffle=shuffled)
-    else:
-        return DataLoader(dataset, batch_size=params.batch_size, shuffle=shuffled)
-
-
-def parse_args():
-    """Command-line argument parser for training."""
-
-    # New parser
-    parser = ArgumentParser(description='PyTorch implementation of Noise2Noise from Lehtinen et al. (2018)')
-
-    # Data parameters
-    parser.add_argument('-d', '--data', help='dataset path', default='../data')
-    parser.add_argument('--ckpt-save-path', help='checkpoint save path', default='../ckpts')
-    parser.add_argument('--ckpt-overwrite', help='overwrite model checkpoint on save', default=False, type=bool)
-    parser.add_argument('--report-interval', help='batch report interval', default=500, type=int)
-    parser.add_argument('-r', '--redux', help='use smaller datasets', default=False, type=bool)
-
-    # Test parameters
-    parser.add_argument('--load-ckpt', help='load model checkpoint (specify to infer)')
-    parser.add_argument('--show-output', help='pop up window to show output on test', default=True, type=bool)
-
-    # Training hyperparameters
-    parser.add_argument('-lr', '--learning-rate', help='learning rate', default=0.0003, type=float)
-    parser.add_argument('-a', '--adam', help='adam parameters', nargs='+', default=[0.9, 0.99, 1e-8], type=list)
-    parser.add_argument('-b', '--batch-size', help='minibatch size', default=4, type=int)
-    parser.add_argument('-e', '--nb-epochs', help='number of epochs', default=1000, type=int)
-    parser.add_argument('-l', '--loss', help='loss function', choices=['l1', 'l2', 'rmse'], default='l1', type=str)
-    parser.add_argument('--cuda', help='use cuda', default=True, type=bool)
-
-    # Corruption parameters
-    parser.add_argument('-n', '--noise-type', help='noise type',
-        choices=['gaussian', 'poisson', 'text', 'mc'], default='gaussian', type=str)
-    parser.add_argument('-v', '--noise-param', help='noise parameter (e.g. sigma for gaussian)', default=50, type=float)
-    parser.add_argument('-c', '--crop-size', help='random crop size', default=256, type=int)
-    parser.add_argument('--clean-targets', help='use clean targets in training', default=False, type=bool)
-
-    return parser.parse_args()
-
-
-if __name__ == '__main__':
-    """Main Noise2Noise program."""
-
-    # Parse training parameters
-    params = parse_args()
-
-    # Train/valid datasets
-    train_loader = load_dataset('train', params, shuffled=True)
-    valid_loader = load_dataset('valid', params, shuffled=False)
-
-    # Initialize model
-    n2n = Noise2Noise(params)
-
-    # If trained model checkpoint is specified, test on new images
-    if params.load_ckpt:
-        params.redux = False
-        params.clean_targets = True
-        params.crop_size = 256
-        test_loader = load_dataset('test', params, shuffled=False, single=True)
-        n2n.load_model(params.load_ckpt)
-        n2n.test(test_loader, show=params.show_output)
-
-    # Otherwise, train model
-    else:
-        n2n.train(train_loader, valid_loader)

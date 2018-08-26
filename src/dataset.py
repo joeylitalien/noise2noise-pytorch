@@ -5,7 +5,7 @@ import torch
 from torchvision import transforms
 import torchvision.transforms.functional as tvF
 import torch.nn.functional as F
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 import os
 import numpy as np
@@ -34,14 +34,15 @@ def psnr(source_denoised, target):
     return 10. * torch.log10(1. / F.mse_loss(source_denoised, target))
 
 
-def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show=True):
+def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show):
     """Creates montage for easy comparison."""
 
     fig, ax = plt.subplots(1, 3, figsize=(9, 3))
+    fig.canvas.set_window_title(img_name.capitalize()[:-4])
 
     # Convert to PIL images
     noisy = transforms.ToPILImage()(noisy_t)
-    denoised = transforms.ToPILImage()(denoised_t)
+    denoised = transforms.ToPILImage()(torch.clamp(denoised_t, 0, 1))
     clean = transforms.ToPILImage()(clean_t)
 
     # Build image montage
@@ -56,7 +57,7 @@ def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show=True)
         ax[j].axis('off')
 
     # Open pop up window, if requested
-    if show:
+    if show > 0:
         plt.show()
 
     # Save to files
@@ -64,6 +65,22 @@ def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show=True)
     noisy.save(os.path.join(save_path, '{}_noisy.png'.format(fname)))
     denoised.save(os.path.join(save_path, '{}_denoised.png'.format(fname)))
     fig.savefig(os.path.join(save_path, '{}_montage.png'.format(fname)), bbox_inches='tight')
+
+
+def load_dataset(name, params, shuffled=False, single=False):
+    """Loads dataset and returns corresponding data loader."""
+
+    # Create Torch dataset
+    noise = (params.noise_type, params.noise_param)
+    img_dir = '{}_redux'.format(name) if params.redux else name
+    path = os.path.join(params.data, img_dir)
+    dataset = N2NDataset(path, params.crop_size, noise_dist=noise, clean_targets=params.clean_targets)
+
+    # Use batch size of 1, if needed (e.g. test set)
+    if single:
+        return DataLoader(dataset, batch_size=1, shuffle=shuffled)
+    else:
+        return DataLoader(dataset, batch_size=params.batch_size, shuffle=shuffled)
 
 
 class N2NDataset(Dataset):
@@ -87,6 +104,7 @@ class N2NDataset(Dataset):
 
         # Transforms
         self._to_tensor = transforms.ToTensor()
+
 
     def _random_crop(self, img):
         """Performs random square crop of fixed size."""
