@@ -24,9 +24,10 @@ The authors use [ImageNet](http://image-net.org/download), but any dataset will 
 mkdir data && cd data
 mkdir train valid test
 wget http://images.cocodataset.org/zips/val2017.zip
-unzip val2017.zip -d train
-mv 'ls train | head -800' valid
-remove *.zip
+unzip val2017.zip
+mv val2017 train && cd train
+mv 'ls | head -800' ../valid
+rm ../*.zip
 ```
 
 You can also download the full datasets (17 GB) if you have the bandwidth:
