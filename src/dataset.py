@@ -34,25 +34,25 @@ def psnr(source_denoised, target):
     return 10. * torch.log10(1. / F.mse_loss(source_denoised, target))
 
 
-def create_montage(noisy_tensor, denoised_tensor, clean_tensor, show=True):
+def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show=True):
     """Creates montage for easy comparison."""
 
     fig, ax = plt.subplots(1, 3, figsize=(9, 3))
 
     # Convert to PIL images
-    noisy = transforms.ToPILImage()(noisy_tensor)
-    denoised = transforms.ToPILImage()(denoised_tensor)
-    clean = transforms.ToPILImage()(clean_tensor)
+    noisy = transforms.ToPILImage()(noisy_t)
+    denoised = transforms.ToPILImage()(denoised_t)
+    clean = transforms.ToPILImage()(clean_t)
 
     # Build image montage
-    psnr_vals = [psnr(noisy_tensor, clean_tensor), psnr(denoised_tensor, clean_tensor)]
+    psnr_vals = [psnr(noisy_t, clean_t), psnr(denoised_t, clean_t)]
     titles = ['Input: {:.2f} dB'.format(psnr_vals[0]),
               'Denoised: {:.2f} dB'.format(psnr_vals[1]),
               'Ground truth']
     zipped = zip(titles, [noisy, denoised, clean])
     for j, (title, img) in enumerate(zipped):
         ax[j].imshow(img)
-        ax[j].set_title(title)
+        ax[j].set_title(title, fontname='serif')
         ax[j].axis('off')
 
     # Open pop up window, if requested
@@ -60,10 +60,10 @@ def create_montage(noisy_tensor, denoised_tensor, clean_tensor, show=True):
         plt.show()
 
     # Save to files
-    fname = os.path.splitext(test_loader.dataset.imgs[i])[0]
-    noisy.save(os.path.join(denoised_dir, '{}_noisy.png'.format(fname)))
-    denoised.save(os.path.join(denoised_dir, '{}_denoised.png'.format(fname)))
-    fig.savefig(os.path.join(denoised_dir, '{}_montage.png'.format(fname)), bbox_inches='tight')
+    fname = os.path.splitext(img_name)[0]
+    noisy.save(os.path.join(save_path, '{}_noisy.png'.format(fname)))
+    denoised.save(os.path.join(save_path, '{}_denoised.png'.format(fname)))
+    fig.savefig(os.path.join(save_path, '{}_montage.png'.format(fname)), bbox_inches='tight')
 
 
 class N2NDataset(Dataset):
