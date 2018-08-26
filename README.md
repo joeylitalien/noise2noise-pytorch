@@ -9,21 +9,21 @@ This is a *weekend (partial and unfinished)* PyTorch implementation of [Noise2No
 * [matplotlib](https://matplotlib.org/) (2.2.3)
 * [Pillow](https://pillow.readthedocs.io/en/latest/index.html) (5.2.0)
 
-Tested on Python 3.6.5 on macOS High Sierra (10.13.4). Code will fail on Python 2.7.x due to usage of 3.6-specific functions. Should work on Linux. Note that code will also fail on Windows out of the box due to differences in path resolver (`os.path`).
+This code was tested on Python 3.6.5 on macOS High Sierra (10.13.4). It *will* fail on Python 2.7.x due to usage of 3.6-specific functions. Note that training and testing will also fail on Windows out of the box due to differences in path resolver (`os.path`).
 
 ## Dataset
 
-The authors use [ImageNet](http://image-net.org/download), but any dataset will do. [COCO 2017](http://cocodataset.org/#download) has a small validation set (1 GB) which can be nicely split into train/valid for easier training:
+The authors use [ImageNet](http://image-net.org/download), but any dataset will do. [COCO 2017](http://cocodataset.org/#download) has a small validation set (1 GB) which can be nicely split into train/valid for easier training. For instance, to have a 4200/800 split, you could do:
 ```
 mkdir data && cd data
-mkdir all train valid test
+mkdir train valid test
 wget http://images.cocodataset.org/zips/val2017.zip
 unzip val2017.zip -d train
 mv 'ls train | head -800' valid
 remove *.zip
 ```
 
-You can also download the full datasets (17 GB), if you have the bandwidth:
+You can also download the full datasets (17 GB) if you have the bandwidth:
 
 ```
 mkdir data && cd data
@@ -35,13 +35,13 @@ unzip val2017.zip -d valid
 rm *.zip
 ```
 
-Add your favorite images to the `data/test` folder. Only a handful will do to visually inspect.
+Add your favorite images to the `data/test` folder. Only a handful will do to visually inspect the denoiser performance.
 
 ## Training
 
 See `python3 train.py --h` for list of optional arguments, or `examples/train.sh` for an example.
 
-By default, the model train with noisy targets. To train with clean targets, use `--clean-targets`. The program assumes that the directory passed to `--data` contains subdirectories `train` and `valid`. To train and validate on smaller datasets, use the `--train-size` and `--valid-size` options. To plot stats as the model trains, use `--plot-stats`.
+By default, the model train with noisy targets. To train with clean targets, use `--clean-targets`. The program assumes that the directory passed to `--data` contains subdirectories `train` and `valid`. To train and validate on smaller datasets, use the `--train-size` and `--valid-size` options. To plot stats as the model trains, use `--plot-stats`; these are saved alongside checkpoints.
 
 ### Gaussian noise
 The noise parameter is the maximum standard deviation σ.
@@ -75,7 +75,7 @@ python3 train.py \
 
 ## Testing
 
-Model checkpoints are automatically saved after every epoch. To test the denoiser, simply pass a PyTorch model (`.pt` file) to `--load-ckpt`. This assumes the existence of a `test` directory under your data folder. The `--show-output` option specifies the number of noisy/denoised/clean montages to display. To disable this, simply remove `--show-output`.
+Model checkpoints are automatically saved after every epoch. To test the denoiser, provide `test.py` with a PyTorch model (`.pt` file) with the argument `--load-ckpt`. This assumes the existence of a `test` directory under your data folder. The `--show-output` option specifies the number of noisy/denoised/clean montages to display. To disable this, simply remove `--show-output`.
 
 ```
 python3 test.py \
@@ -97,3 +97,8 @@ See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` 
 - [ ] Add *p* parameter to text train/valid routines
 - [ ] Implement Monte Carlo rendering noise (will require HDR-specific methods)
 - [ ] Fix RedNet baseline skip connections (low priority)
+
+## References
+* Jaakko Lehtinen, Jacob Munkberg, Jon Hasselgren, Samuli Laine, Tero Karras, Miika Aittala,and Timo Aila. *Noise2Noise: Learning Image Restoration without Clean Data*, in Proceedings of ICML, 2018.
+
+* Tsung-Yi Lin, Michael Maire, Serge Belongie, Lubomir Bourdev, Ross Girshick, James Hays, Pietro Perona, Deva Ramanan, C. Lawrence Zitnick, and Piotr Dollár. *Microsoft COCO: Common Objects in Context*. 	arXiv:1405.0312, 2014.
