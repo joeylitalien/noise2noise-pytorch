@@ -36,8 +36,8 @@ mkdir data && cd data
 mkdir train valid test
 wget http://images.cocodataset.org/zips/train2017.zip
 wget http://images.cocodataset.org/zips/val2017.zip
-unzip train2017.zip -d train
-unzip val2017.zip -d valid
+unzip -j train2017.zip -d train
+unzip -j val2017.zip -d valid
 rm *.zip
 ```
 
