@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import torch
-import torchvision.transforms.functional as tvF
+from torch import log10
 import torch.nn.functional as F
+import torchvision.transforms.functional as tvF
 from torch.utils.data import Dataset, DataLoader
 
 import os
@@ -34,7 +34,7 @@ def show_img(tensor):
 def psnr(source_denoised, target):
     """Computes peak signal-to-noise ratio."""
 
-    return 10. * torch.log10(1. / F.mse_loss(source_denoised, target))
+    return 10. * log10(1. / F.mse_loss(source_denoised, target))
 
 
 def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show):
@@ -43,7 +43,7 @@ def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show):
     fig, ax = plt.subplots(1, 3, figsize=(9, 3))
     fig.canvas.set_window_title(img_name.capitalize()[:-4])
 
-    # Bring on CPU
+    # Bring tensors to CPU
     noisy_t = noisy_t.cpu()
     denoised_t = denoised_t.cpu()
     clean_t = clean_t.cpu()
@@ -84,7 +84,7 @@ def load_dataset(img_dir, redux, params, shuffled=False, single=False):
     dataset = N2NDataset(path, redux, params.crop_size, noise_dist=noise,
                     clean_targets=params.clean_targets)
 
-    # Use batch size of 1, if needed (e.g. test set)
+    # Use batch size of 1, if requested (e.g. test set)
     if single:
         return DataLoader(dataset, batch_size=1, shuffle=shuffled)
     else:
@@ -195,15 +195,13 @@ class N2NDataset(Dataset):
             img = self._random_crop(img)
 
         # Corrupt source image
-        source = self._corrupt(img)
-        source = tvF.to_tensor(source)
+        source = tvF.to_tensor(self._corrupt(img))
 
         # Corrupt target image, but not when clean targets are requested
         if self.clean_targets:
             target = tvF.to_tensor(img)
         else:
-            target = self._corrupt(img)
-            target = tvF.to_tensor(target)
+            target = tvF.to_tensor(self._corrupt(img))
 
         return source, target
 
