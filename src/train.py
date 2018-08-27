@@ -52,8 +52,8 @@ if __name__ == '__main__':
     params = parse_args()
 
     # Train/valid datasets
-    train_loader = load_dataset('train', params.train_redux, params, shuffled=True)
-    valid_loader = load_dataset('valid', params.valid_redux, params, shuffled=False)
+    train_loader = load_dataset('train', params.train_size, params, shuffled=True)
+    valid_loader = load_dataset('valid', params.valid_size, params, shuffled=False)
 
     # Initialize model and train
     n2n = Noise2Noise(params, trainable=True)
