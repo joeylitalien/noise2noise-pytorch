@@ -29,7 +29,7 @@ class Noise2Noise(object):
     def _compile(self):
         """Compiles model (architecture, loss function, optimizers, etc.)."""
 
-        print('Noise2Noise: Learning Image Restoration without Clean Data (Lethinen et al. 2018)')
+        print('Noise2Noise: Learning Image Restoration without Clean Data (Lethinen et al., 2018)')
 
         # Model
         self.model = UNet()

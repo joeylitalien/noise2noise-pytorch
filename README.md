@@ -15,7 +15,7 @@ To install the latest version of all packages, run
 pip3 install --user -r requirements.txt
 ```
 
-This code was tested on Python 3.6.5 on macOS High Sierra (10.13.4). It *will* fail on Python 2.7.x due to usage of 3.6-specific functions. Note that training and testing will also fail on Windows out of the box due to differences in path resolver (`os.path`).
+This code was tested on Python 3.6.5 on macOS High Sierra 10.13.4 and Ubuntu 16.04. It *will* fail with Python 2.7.x due to usage of 3.6-specific functions. Note that training and testing will also fail on Windows out of the box due to differences in path resolver (`os.path`).
 
 ## Dataset
 
@@ -99,6 +99,7 @@ See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` 
 - [x] Test Gaussian noise and text overlay thoroughly so they work as intended
 - [x] Track validation loss and PSNR over time to plot
 - [x] Implement Poisson noise with L2 loss
+- [ ] Add results
 - [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
 - [ ] Add *p* parameter to text train/valid routines
 - [ ] Implement Monte Carlo rendering noise (will require HDR-specific methods)
@@ -111,4 +112,4 @@ See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` 
 
 ## Acknowledgments
 
-I would like to acknowledge [Yusuke Uchida](https://yu4u.github.io/) for his [Keras implementation of Noise2Noise](https://github.com/yu4u/noise2noise). Although Keras and PyTorch syntaxes are very different, his code did help me in completing this implementation.
+I would like to acknowledge [Yusuke Uchida](https://yu4u.github.io/) for his [Keras implementation of Noise2Noise](https://github.com/yu4u/noise2noise). Although Keras and PyTorch syntaxes are very different, parts his code did help me in completing this implementation.
