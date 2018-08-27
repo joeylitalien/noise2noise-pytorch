@@ -34,7 +34,8 @@ def show_img(tensor):
 def psnr(source_denoised, target):
     """Computes peak signal-to-noise ratio."""
 
-    return 10. * log10(1. / F.mse_loss(source_denoised, target))
+    source_denoised = source_denoised.clamp(0, 1)
+    return 10. * log10(1 / F.mse_loss(source_denoised, target))
 
 
 def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show):
