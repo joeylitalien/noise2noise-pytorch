@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument('-vs', '--valid-size', help='size of valid dataset', type=int)
 
     # Training hyperparameters
-    parser.add_argument('-lr', '--learning-rate', help='learning rate', default=0.0003, type=float)
+    parser.add_argument('-lr', '--learning-rate', help='learning rate', default=0.001, type=float)
     parser.add_argument('-a', '--adam', help='adam parameters', nargs='+', default=[0.9, 0.99, 1e-8], type=list)
     parser.add_argument('-b', '--batch-size', help='minibatch size', default=4, type=int)
     parser.add_argument('-e', '--nb-epochs', help='number of epochs', default=100, type=int)
