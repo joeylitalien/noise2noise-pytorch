@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from torch import log10
+import torch
 import torch.nn.functional as F
 import torchvision.transforms.functional as tvF
 from torch.utils.data import Dataset, DataLoader
@@ -32,10 +32,13 @@ def show_img(tensor):
 
 
 def psnr(source_denoised, target):
-    """Computes peak signal-to-noise ratio."""
+    """Computes peak signal-to-noise ratio.
+    TODO: Find a pure PyTorch batch solution that also works on the GPU.
+    """
 
-    source_denoised = source_denoised.clamp(0, 1)
-    return 10. * log10(1 / F.mse_loss(source_denoised, target))
+    s = np.array(tvF.to_pil_image(source_denoised.clamp(0, 1))).astype(np.uint8)
+    t = np.array(tvF.to_pil_image(target)).astype(np.uint8)
+    return 10 * np.log10((255 ** 2) / ((s - t) ** 2).mean())
 
 
 def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show):

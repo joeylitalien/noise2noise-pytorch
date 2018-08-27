@@ -163,7 +163,13 @@ class Noise2Noise(object):
             # Update loss
             loss = self.loss(source_denoised, target)
             loss_meter.update(loss.item())
-            psnr_meter.update(psnr(source_denoised, target).item())
+
+            # Compute PSRN
+            # TODO: Find a way to do this on the GPU
+            for i in range(self.p.batch_size):
+                s = source_denoised.detach()
+                t = target.detach()
+                psnr_meter.update(psnr(s[i], t[i]).item())
 
         valid_loss = loss_meter.avg
         valid_time = time_elapsed_since(valid_start)[0]
