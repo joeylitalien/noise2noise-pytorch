@@ -3,3 +3,4 @@ torchvision
 numpy
 matplotlib
 Pillow
+OpenEXR
