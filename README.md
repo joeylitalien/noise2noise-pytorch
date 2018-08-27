@@ -9,6 +9,7 @@ This is a *weekend (partial and unfinished)* PyTorch implementation of [Noise2No
 * [NumPy](http://www.numpy.org/) (1.14.2)
 * [Matplotlib](https://matplotlib.org/) (2.2.3)
 * [Pillow](https://pillow.readthedocs.io/en/latest/index.html) (5.2.0)
+* [OpenEXR](http://www.openexr.com/) (1.3.0)
 
 To install the latest version of all packages, run
 ```
@@ -54,12 +55,18 @@ The noise parameter is the maximum standard deviation σ.
 ```
 python3 train.py \
   --ckpt-save-path ../ckpts \
+  --report-interval 25 \
   --data ../data --train-size 500 --valid-size 100 \
+  --learning-rate 0.001 \
+  --adam 0.9, 0.99, 1e-8 \
+  --batch-size 4 \
+  --nb-epochs 100 \
   --loss l2 \
   --noise-type gaussian \
   --noise-param 50 \
   --crop-size 64 \
-  --plot-stats
+  --plot-stats \
+  --cuda
 ```
 
 ### Poisson noise
@@ -68,8 +75,7 @@ The noise parameter is the Poisson parameter λ.
 python3 train.py
   --loss l2 \
   --noise-type poisson \
-  --noise-param 50 \
-  --crop-size 64
+  --noise-param 50
 ```
 
 ### Text overlay
@@ -78,9 +84,12 @@ The noise parameter is the number of text artifacts overlayed.
 python3 train.py \
   --loss l1 \
   --noise-type text \
-  --noise-param 50 \
-  --crop-size 64
+  --noise-param 80
 ```
+
+### Monte Carlo noise
+
+See [instructions below](#monte-carlo-rendering).
 
 ## Testing
 
@@ -93,10 +102,72 @@ python3 test.py \
   --noise-type gaussian \
   --noise-param 50 \
   --crop-size 256 \
-  --show-output 3
+  --show-output 3 \
+  --cuda
 ```
 
 See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` for an example.
+
+## Monte Carlo rendering
+
+### Downloading and building Tungsten
+
+You can use your favourite Monte Carlo physically-based renderer to generate noisy images, but you need to be able to extract albedo and normal buffers. As such, we use [Tungsten](https://github.com/tunabrain/tungsten) by [Benedikt Bitterli](https://benedikt-bitterli.me) since it provides an easy way to retrieve these buffers. Assuming you have an up-to-date version of [CMake](https://cmake.org/download/) installed with `gcc`, run:
+
+```
+git clone https://github.com/tunabrain/tungsten.git
+./setup_builds.sh
+cd build/release
+make
+```
+
+Add Tungsten to your path so you don't have to specify its location.
+```
+echo `export PATH="{your-tungsten-release-dir}":$PATH` >> ~/.profile
+source ~/.profile
+```
+
+Run `tungsten -v` to see if the path is correctly set. If you see Tungsten's version, you are good to go.
+
+### Downloading scene files
+
+The original paper use 860 architectural images; we use a single scene for testing purposes.
+
+```
+cd data && mkdir scenes
+wget https://benedikt-bitterli.me/resources/tungsten/car.zip
+unzip car.zip
+rm *.zip
+```
+
+### Generating renders
+To launch a series of renders to build a training set, do:
+
+```
+python3 render.py \
+  --scene-path ../../data/scenes/car/scene.json \
+  --spp 4 \
+  --nb-renders 10 \
+  --output-dir ../../data/train
+```
+
+You can also specify the path to Tungsten if you have it installed somewhere else with the `--tungsten` argument. The default assumes it's in the environment path already.
+
+See `python3 render.py -h` for more info, or `render.sh` for the above example. You will have to manually remove the default output PNG images from your render directory after the jobs are done (`rm ../../data/renders/*.png`).
+
+### Training (not implemented yet)
+```
+python3 train.py \
+  --ckpt-save-path ../ckpts \
+  --data ../data --train-size 10 --valid-size 1 \
+  --nb-epochs 1000 \
+  --learning-rate 0.001 \
+  --loss rmse \
+  --noise-type mc \
+  --crop-size 64 \
+  --plot-stats
+```
+
 
 ## To do list
 - [x] Test Gaussian noise and text overlay thoroughly so they work as intended
@@ -105,9 +176,9 @@ See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` 
 - [ ] Train on a half-decent GPU and add results
 - [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
 - [ ] Monte Carlo rendering noise
-  - [ ] Find enough scenes to render (movie frames, vary camera position?)
-  - [ ] Create rendering pipeline (Maya, Mitsuba?) to generate images
+  - [x] Generate MC renders with albedo and normal buffers using Tungsten
   - [ ] Implement HDR-specific functions (e.g. Reinhard tone mapping)
+  - [ ] Pass to U-Net
 - [ ] Fix RedNet baseline skip connections (low priority)
 
 ## References
