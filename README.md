@@ -55,6 +55,7 @@ The noise parameter is the maximum standard deviation σ.
 python3 train.py \
   --ckpt-save-path ../ckpts \
   --data ../data --train-size 500 --valid-size 100 \
+  --loss l2 \
   --noise-type gaussian \
   --noise-param 50 \
   --crop-size 64 \
@@ -65,6 +66,7 @@ python3 train.py \
 The noise parameter is the Poisson parameter λ.
 ```
 python3 train.py
+  --loss l2 \
   --noise-type poisson \
   --noise-param 50 \
   --crop-size 64
@@ -74,6 +76,7 @@ python3 train.py
 The noise parameter is the number of text artifacts overlayed.
 ```
 python3 train.py \
+  --loss l1 \
   --noise-type text \
   --noise-param 50 \
   --crop-size 64
