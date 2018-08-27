@@ -4,10 +4,10 @@ This is a *weekend (partial and unfinished)* PyTorch implementation of [Noise2No
 
 ## Dependencies
 
-* [torch](https://pytorch.org/) (0.4.1)
-* [torchvision](https://pytorch.org/docs/stable/torchvision/index.html) (0.2.0)
-* [numpy](http://www.numpy.org/) (1.14.2)
-* [matplotlib](https://matplotlib.org/) (2.2.3)
+* [PyTorch](https://pytorch.org/) (0.4.1)
+* [Torchvision](https://pytorch.org/docs/stable/torchvision/index.html) (0.2.0)
+* [NumPy](http://www.numpy.org/) (1.14.2)
+* [Matplotlib](https://matplotlib.org/) (2.2.3)
 * [Pillow](https://pillow.readthedocs.io/en/latest/index.html) (5.2.0)
 
 To install the latest version of all packages, run
@@ -15,11 +15,11 @@ To install the latest version of all packages, run
 pip3 install --user -r requirements.txt
 ```
 
-This code was tested on Python 3.6.5 on macOS High Sierra 10.13.4 and Ubuntu 16.04. It *will* fail with Python 2.7.x due to usage of 3.6-specific functions. Note that training and testing will also fail on Windows out of the box due to differences in path resolver (`os.path`).
+This code was tested on Python 3.6.5 on macOS High Sierra (10.13.4) and Ubuntu 16.04. It will fail with Python 2.7.x due to usage of 3.6-specific functions. Note that training and testing will also fail on Windows out of the box due to differences in the path resolvers (`os.path`).
 
 ## Dataset
 
-The authors use [ImageNet](http://image-net.org/download), but any dataset will do. [COCO 2017](http://cocodataset.org/#download) has a small validation set (1 GB) which can be nicely split into train/valid for easier training. For instance, to have a 4200/800 split, you could do:
+The authors use [ImageNet](http://image-net.org/download), but any dataset will do. [COCO 2017](http://cocodataset.org/#download) has a small validation set (1 GB) which can be nicely split into train/valid for easier training. For instance, to obtain a 4200/800 train/valid split you can do:
 ```
 mkdir data && cd data
 mkdir train valid test
@@ -29,14 +29,14 @@ cd train && mv `ls | head -800` ../valid
 rm ../*.zip
 ```
 
-You can also download the full datasets (17 GB) if you have the bandwidth:
+You can also download the full datasets (7 GB) that more or less match the paper, if you have the bandwidth:
 
 ```
 mkdir data && cd data
 mkdir train valid test
-wget http://images.cocodataset.org/zips/train2017.zip
+wget http://images.cocodataset.org/zips/test2017.zip
 wget http://images.cocodataset.org/zips/val2017.zip
-unzip -j train2017.zip -d train
+unzip -j test2017.zip -d train
 unzip -j val2017.zip -d valid
 rm *.zip
 ```
@@ -81,7 +81,7 @@ python3 train.py \
 
 ## Testing
 
-Model checkpoints are automatically saved after every epoch. To test the denoiser, provide `test.py` with a PyTorch model (`.pt` file) with the argument `--load-ckpt`. This assumes the existence of a `test` directory under your data folder. The `--show-output` option specifies the number of noisy/denoised/clean montages to display. To disable this, simply remove `--show-output`.
+Model checkpoints are automatically saved after every epoch. To test the denoiser, provide `test.py` with a PyTorch model (`.pt` file) via the argument `--load-ckpt`. This assumes the existence of a `test` directory under your data folder. The `--show-output` option specifies the number of noisy/denoised/clean montages to display on screen. To disable this, simply remove `--show-output`.
 
 ```
 python3 test.py \
@@ -112,4 +112,4 @@ See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` 
 
 ## Acknowledgments
 
-I would like to acknowledge [Yusuke Uchida](https://yu4u.github.io/) for his [Keras implementation of Noise2Noise](https://github.com/yu4u/noise2noise). Although Keras and PyTorch syntaxes are very different, parts his code did help me in completing this implementation.
+I would like to acknowledge [Yusuke Uchida](https://yu4u.github.io/) for his [Keras implementation of Noise2Noise](https://github.com/yu4u/noise2noise). Although Keras and PyTorch are very different frameworks, parts of his code did help me in completing this implementation.
