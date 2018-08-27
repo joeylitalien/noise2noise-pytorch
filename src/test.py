@@ -20,8 +20,8 @@ def parse_args():
     # Data parameters
     parser.add_argument('-d', '--data', help='dataset root path', default='../data')
     parser.add_argument('--load-ckpt', help='load model checkpoint')
-    parser.add_argument('--show-output', help='pop up window to display outputs (0 to disable)', default=3, type=int)
-    parser.add_argument('--cuda', help='use cuda', default=True, type=bool)
+    parser.add_argument('--show-output', help='pop up window to display outputs', default=0, type=int)
+    parser.add_argument('--cuda', help='use cuda', action='store_true')
 
     # Corruption parameters
     parser.add_argument('-n', '--noise-type', help='noise type',

@@ -102,10 +102,12 @@ See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` 
 - [x] Test Gaussian noise and text overlay thoroughly so they work as intended
 - [x] Track validation loss and PSNR over time to plot
 - [x] Implement Poisson noise with L2 loss
-- [ ] Add results
+- [ ] Train on a half-decent GPU and add results
 - [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
-- [ ] Add *p* parameter to text train/valid routines
-- [ ] Implement Monte Carlo rendering noise (will require HDR-specific methods)
+- [ ] Monte Carlo rendering noise
+  - [ ] Find enough scenes to render (movie frames, vary camera position?)
+  - [ ] Create rendering pipeline (Maya, Mitsuba?) to generate images
+  - [ ] Implement HDR-specific functions (e.g. Reinhard tone mapping)
 - [ ] Fix RedNet baseline skip connections (low priority)
 
 ## References

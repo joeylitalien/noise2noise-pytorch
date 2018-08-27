@@ -33,11 +33,14 @@ def show_img(tensor):
 
 def psnr(source_denoised, target):
     """Computes peak signal-to-noise ratio.
-    TODO: Find a pure PyTorch batch solution that also works on the GPU.
+    TODO: Find a pure PyTorch minibatch solution that also works on the GPU.
+          Not sure if possible since torch.mean() doesn't accept bytes...
     """
 
-    s = np.array(tvF.to_pil_image(source_denoised.clamp(0, 1))).astype(np.uint8)
-    t = np.array(tvF.to_pil_image(target)).astype(np.uint8)
+    s = source_denoised.detach()
+    t = target.detach()
+    s = np.array(tvF.to_pil_image(source_denoised.clamp(0, 1)))
+    t = np.array(tvF.to_pil_image(target))
     return 10 * np.log10((255 ** 2) / ((s - t) ** 2).mean())
 
 

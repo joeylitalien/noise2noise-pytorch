@@ -117,7 +117,7 @@ class Noise2Noise(object):
             os.mkdir(save_path)
 
         for batch_idx, (source, target) in enumerate(test_loader):
-            # Only show first <show> images
+            # Only do first <show> images
             if show == 0 or batch_idx >= show:
                 break
 
@@ -165,11 +165,9 @@ class Noise2Noise(object):
             loss_meter.update(loss.item())
 
             # Compute PSRN
-            # TODO: Find a way to do this on the GPU
+            # TODO: Find a way to offload to GPU
             for i in range(self.p.batch_size):
-                s = source_denoised.detach()
-                t = target.detach()
-                psnr_meter.update(psnr(s[i], t[i]).item())
+                psnr_meter.update(psnr(source_denoised[i], target[i]).item())
 
         valid_loss = loss_meter.avg
         valid_time = time_elapsed_since(valid_start)[0]

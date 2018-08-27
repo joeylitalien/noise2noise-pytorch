@@ -65,7 +65,7 @@ class UNet(nn.Module):
 
 
     def forward(self, x):
-        """Through encoder, then decoder with concat operators."""
+        """Through encoder, then decoder by adding U-skip connections. """
 
         # Encoder
         pool1 = self._block1(x)
