@@ -6,6 +6,8 @@ import numpy as np
 from datetime import datetime
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 

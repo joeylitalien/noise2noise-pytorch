@@ -6,7 +6,6 @@ import torch.nn as nn
 from torch.optim import Adam
 
 from unet import UNet
-from rednet import RedNet
 from utils import *
 from dataset import *
 
@@ -54,7 +53,8 @@ class Noise2Noise(object):
         self.use_cuda = torch.cuda.is_available() and self.p.cuda
         if self.use_cuda:
             self.model = self.model.cuda()
-            self.loss = self.loss.cuda()
+            if self.trainable:
+                self.loss = self.loss.cuda()
 
 
     def _print_params(self):

@@ -14,6 +14,8 @@ from string import ascii_letters
 from PIL import Image, ImageFont, ImageDraw
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 
@@ -41,6 +43,11 @@ def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show):
 
     fig, ax = plt.subplots(1, 3, figsize=(9, 3))
     fig.canvas.set_window_title(img_name.capitalize()[:-4])
+
+    # Bring on CPU
+    noisy_t = noisy_t.cpu()
+    denoised_t = denoised_t.cpu()
+    clean_t = clean_t.cpu()
 
     # Convert to PIL images
     noisy = transforms.ToPILImage()(noisy_t)
