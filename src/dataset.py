@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import torch
-from torchvision import transforms
 import torchvision.transforms.functional as tvF
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
@@ -26,7 +25,7 @@ def load_img(path):
 def show_img(tensor):
     """Visualizes Torch tensor as PIL image."""
 
-    img = transforms.ToPILImage()(tensor)
+    img = tvF.to_pil_image(tensor)
     img.show()
 
 
@@ -43,9 +42,9 @@ def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show):
     fig.canvas.set_window_title(img_name.capitalize()[:-4])
 
     # Convert to PIL images
-    noisy = transforms.ToPILImage()(noisy_t)
-    denoised = transforms.ToPILImage()(torch.clamp(denoised_t, 0, 1))
-    clean = transforms.ToPILImage()(clean_t)
+    noisy = tvF.to_pil_image(noisy_t)
+    denoised = tvF.to_pil_image(torch.clamp(denoised_t, 0, 1))
+    clean = tvF.to_pil_image(clean_t)
 
     # Build image montage
     psnr_vals = [psnr(noisy_t, clean_t), psnr(denoised_t, clean_t)]
@@ -106,14 +105,16 @@ class N2NDataset(Dataset):
         # Use clean targets
         self.clean_targets = clean_targets
 
-        # Transforms
-        self._to_tensor = transforms.ToTensor()
-
 
     def _random_crop(self, img):
         """Performs random square crop of fixed size."""
 
         w, h = img.size
+
+        # Resize if dimensions are too small
+        if min(w, h) < self.crop_size:
+            return tvF.resize(img, (self.crop_size, self.crop_size))
+
         i = np.random.randint(0, h - self.crop_size + 1)
         j = np.random.randint(0, w - self.crop_size + 1)
 
@@ -188,14 +189,14 @@ class N2NDataset(Dataset):
 
         # Corrupt source image
         source = self._corrupt(img)
-        source = self._to_tensor(source)
+        source = tvF.to_tensor(source)
 
         # Corrupt target image, but not when clean targets are requested
         if self.clean_targets:
-            target = self._to_tensor(img)
+            target = tvF.to_tensor(img)
         else:
             target = self._corrupt(img)
-            target = self._to_tensor(target)
+            target = tvF.to_tensor(target)
 
         return source, target
 

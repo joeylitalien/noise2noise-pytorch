@@ -111,4 +111,4 @@ See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` 
 
 ## Acknowledgments
 
-I would like to acknowledge [Yusuke Uchida](https://yu4u.github.io/) for his [Keras implementation of Noise2Noise](https://github.com/yu4u/noise2noise). Although Keras and PyTorch syntaxes are very different, his code did help me in completing this implementation.
+I would like to acknowledge [Yusuke Uchida](https://yu4u.github.io/) for his [Keras implementation of Noise2Noise](https://github.com/yu4u/noise2noise). Although Keras and PyTorch syntaxes are very different, parts of his code did help me in completing this implementation.
