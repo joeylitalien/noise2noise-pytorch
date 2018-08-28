@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import json
-
 import os
 import subprocess as sp
+import json
 import random
 from argparse import ArgumentParser
 
@@ -29,8 +28,9 @@ def config_scene(scene_path, spp):
         buffer_dict['sample_variance'] = False
         scene['renderer']['output_buffers'].append(buffer_dict)
 
-    # Update SPP count
+    # Update SPP count and tone mapping
     scene['renderer']['spp'] = spp
+    scene['camera']['tonemap'] = 'linear'
 
     # Save new scene
     scene_dir = os.path.dirname(os.path.splitext(scene_path)[0])
@@ -43,11 +43,14 @@ def config_scene(scene_path, spp):
 
 
 def batch_render(scene_path, params):
-    """Renders <scene_path> n times and save to output directory."""
+    """Renders <scene_path> N times and save to output directory."""
 
     # Create render directory, if nonexistent
+    subdirs = ['render', 'albedo', 'normal']
+    subdirs_paths = [os.path.join(params.output_dir, s) for s in subdirs]
     if not os.path.isdir(params.output_dir):
         os.mkdir(params.output_dir)
+        [os.mkdir(s) for s in subdirs_paths]
 
     # Batch render
     for i in range(params.nb_renders):
@@ -56,12 +59,18 @@ def batch_render(scene_path, params):
         render_cmd = f'{params.tungsten} -s {seed} -d {params.output_dir} {scene_path}'
         sp.call(render_cmd.split())
 
-        # Move to render directory
+        # Create renaming/moving commands
         scene_dir = os.path.dirname(os.path.splitext(scene_path)[0])
         img_id = '{0:04d}'.format(i + 1)
-        rename_imgs = ['mv {}/{}.exr {}/{}_{}.exr'.format(params.output_dir, t, params.output_dir, img_id, t) for t in ['render', 'albedo', 'normal']]
-        for rename in rename_imgs:
-            sp.call(rename.split())
+        mv_imgs = []
+        for name, path in zip(subdirs, subdirs_paths):
+            filename = os.path.join(params.output_dir, name + '.exr')
+            dest = os.path.join(params.output_dir, name, f'{img_id}_{name}.exr')
+            mv_imgs.append(f'mv {filename} {dest}')
+
+        # Call
+        for mv in mv_imgs:
+            sp.call(mv.split())
 
 
 def parse_args():
