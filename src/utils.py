@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import torch
+import torchvision.transforms.functional as tvF
 import os
 import numpy as np
 from datetime import datetime
@@ -71,6 +73,79 @@ def plot_per_epoch(ckpt_dir, title, measurements, y_label):
     plot_fname = os.path.join(ckpt_dir, fname)
     plt.savefig(plot_fname, dpi=200)
     plt.close()
+    
+    
+    
+def reinhard_tonemap(rgb):
+    """Reinhard et al. (2002) tone mapping. (array version)"""
+    
+    return [255. * np.power(v / (1 + v), 1 / 2.2) for v in rgb]
+    
+
+def reinhard_tonemap_tensor(tensor):
+    """Reinhard et al. (2002) tone mapping (tensor version)."""
+    
+    return tensor#torch.pow(tensor / (1 + tensor), 1 / 2.2)
+    
+    
+def psnr(source_denoised, target):
+    """Computes peak signal-to-noise ratio.
+    TODO: Find a pure PyTorch minibatch solution that also works on the GPU.
+          Not sure if possible since torch.mean() doesn't accept bytes...
+    """
+
+    s = source_denoised.detach()
+    t = target.detach()
+    s = np.array(tvF.to_pil_image(source_denoised.clamp(0, 1)))
+    t = np.array(tvF.to_pil_image(target))
+    return 10 * np.log10((255 ** 2) / ((s - t) ** 2).mean())
+    
+    
+def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show, tonemap=False):
+    """Creates montage for easy comparison."""
+
+    fig, ax = plt.subplots(1, 3, figsize=(9, 3))
+    fig.canvas.set_window_title(img_name.capitalize()[:-4])
+
+    # Bring tensors to CPU
+    noisy_t = noisy_t.cpu()
+    denoised_t = denoised_t.cpu()
+    clean_t = clean_t.cpu()
+
+    # Convert to PIL images (tonemap images first if specified)
+    # if tonemap:
+    #     noisy = tvF.to_pil_image(reinhard_tonemap_tensor(noisy_t))
+    #     denoised = tvF.to_pil_image(reinhard_tonemap_tensor(denoised_t))
+    #     clean = tvF.to_pil_image(reinhard_tonemap_tensor(clean_t))
+    # else:
+    #     noisy = tvF.to_pil_image(noisy_t)
+    #     denoised = tvF.to_pil_image(torch.clamp(denoised_t, 0, 1))
+    #     clean = tvF.to_pil_image(clean_t)
+    
+    noisy = tvF.to_pil_image(noisy_t)
+    denoised = tvF.to_pil_image(torch.clamp(denoised_t, 0, 1))
+    clean = tvF.to_pil_image(clean_t)
+
+    # Build image montage
+    psnr_vals = [psnr(noisy_t, clean_t), psnr(denoised_t, clean_t)]
+    titles = ['Input: {:.2f} dB'.format(psnr_vals[0]),
+              'Denoised: {:.2f} dB'.format(psnr_vals[1]),
+              'Ground truth']
+    zipped = zip(titles, [noisy, denoised, clean])
+    for j, (title, img) in enumerate(zipped):
+        ax[j].imshow(img)
+        ax[j].set_title(title)
+        ax[j].axis('off')
+
+    # Open pop up window, if requested
+    if show > 0:
+        plt.show()
+
+    # Save to files
+    fname = os.path.splitext(img_name)[0]
+    noisy.save(os.path.join(save_path, '{}-noisy.png'.format(fname)))
+    denoised.save(os.path.join(save_path, '{}-denoised.png'.format(fname)))
+    fig.savefig(os.path.join(save_path, '{}-montage.png'.format(fname)), bbox_inches='tight')
 
 
 class AvgMeter(object):
