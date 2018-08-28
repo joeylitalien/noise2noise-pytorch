@@ -1,0 +1,12 @@
+python3 ../train.py \
+  --train-dir ../../data/tonemapped_train --train-size 20 \
+  --valid-dir ../../data/tonemapped_valid --valid-size 4 \
+  --ckpt-save-path ../../ckpts \
+  --report-interval 5 \
+  --nb-epochs 10 \
+  --batch-size 4 \
+  --loss hdr \
+  --noise-type mc \
+  --crop-size 64 \
+  --plot-stats \
+  --cuda
