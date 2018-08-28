@@ -4,15 +4,10 @@
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-
 from unet import UNet
 from utils import *
-from dataset import *
-
 import os
 import json
-from argparse import ArgumentParser
-import matplotlib.pyplot as plt
 
 
 class Noise2Noise(object):
@@ -42,8 +37,8 @@ class Noise2Noise(object):
                                 eps=self.p.adam[2])
 
             # Loss function
-            if self.p.loss == 'rmse':
-                raise NotImplementedError('rMSE loss not implemented yet!')
+            if self.p.loss == 'hdr':
+                self.loss = lambda d, t: ((d - t) ** 2) / (d + 0.01) ** 2
             elif self.p.loss == 'l2':
                 self.loss = nn.MSELoss()
             else:
