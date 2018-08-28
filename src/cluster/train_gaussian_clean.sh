@@ -1,7 +1,7 @@
 python3 ../train.py \
-  --data ../../data --train-size 8000 --valid-size 2000 \
+  --data ../../data --train-size 100 --valid-size 20 \
   --ckpt-save-path ../../ckpts \
-  --report-interval 50 \
+  --report-interval 5 \
   --nb-epochs 100 \
   --loss l2 \
   --noise-type gaussian \

@@ -161,6 +161,7 @@ class NoisyDataset(AbstractDataset):
 
         # Use clean targets
         self.clean_targets = clean_targets
+        self.normalize = normalize
 
 
     def _add_noise(self, img):
@@ -246,6 +247,7 @@ class NoisyDataset(AbstractDataset):
             mean, std = [0.5] * 3, [0.5] * 3
             source = tvF.normalize(source, mean, std)
             target = tvF.normalize(source, mean, std)
+            
         return source, target
 
 

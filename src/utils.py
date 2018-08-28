@@ -49,7 +49,7 @@ def show_on_report(batch_idx, num_batches, loss, elapsed):
     """Formats training stats."""
 
     clear_line()
-    dec = str(int(np.ceil(np.log10(num_batches))))
+    dec = int(np.ceil(np.log10(num_batches)))
     print('Batch {:>{dec}d} / {:d} | Avg loss: {:>1.5f} | Avg train time / batch: {:d} ms'.format(batch_idx + 1,
                                                                                         num_batches, loss, int(elapsed),
                                                                                         dec=dec))

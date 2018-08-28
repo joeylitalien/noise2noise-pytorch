@@ -183,6 +183,7 @@ python3 train.py \
 - [x] Track validation loss and PSNR over time to plot
 - [x] Implement Poisson noise with L2 loss
 - [ ] Train on a half-decent GPU and add results
+- [ ] Move all print statements to a `logging` solution
 - [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
 - [ ] Monte Carlo rendering noise
   - [x] Generate MC renders with albedo and normal buffers using Tungsten

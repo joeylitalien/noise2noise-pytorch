@@ -72,7 +72,11 @@ class Noise2Noise(object):
 
         # Create directory for model checkpoints, if nonexistent
         if first:
-            timestamp = f'{datetime.now():{self.p.noise_type}-%y%m%d-%H%M}'
+            if self.p.clean_targets:
+                timestamp = f'{datetime.now():{self.p.noise_type}-clean-%H%M}'
+            else:
+                timestamp = f'{datetime.now():{self.p.noise_type}-%H%M}'
+            
             self.ckpt_dir = os.path.join(self.p.ckpt_save_path, timestamp)
             if not os.path.isdir(self.ckpt_dir):
                 os.mkdir(self.ckpt_dir)
