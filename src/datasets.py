@@ -7,11 +7,12 @@ import torchvision.transforms.functional as tvF
 from torch.utils.data import Dataset, DataLoader
 
 import os
-from sys import platform
 import numpy as np
 from random import choice
 from string import ascii_letters
 from PIL import Image, ImageFont, ImageDraw
+import Imath
+import OpenEXR
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
 import matplotlib
@@ -19,86 +20,24 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 
-def load_dataset(img_dir, redux, params, shuffled=False, single=False, test=False):
+def load_dataset(root_dir, redux, params, shuffled=False, single=False):
     """Loads dataset and returns corresponding data loader."""
 
     # Create Torch dataset
     noise = (params.noise_type, params.noise_param)
-    path = os.path.join(params.data, img_dir)
-
+    
+    # Instantiate appropriate dataset class
     if params.noise_type == 'mc':
-        dataset = MonteCarloDataset(path, redux, params.crop_size, params.tonemap)
+        dataset = MonteCarloDataset(root_dir, redux, params.crop_size, params.tonemap)
     else:
-        dataset = NoisyDataset(path, redux, params.crop_size, noise_dist=noise,
-                    clean_targets=params.clean_targets, test=test)
+        dataset = NoisyDataset(root_dir, redux, params.crop_size, noise_dist=noise,
+                    clean_targets=params.clean_targets)
 
     # Use batch size of 1, if requested (e.g. test set)
     if single:
         return DataLoader(dataset, batch_size=1, shuffle=shuffled)
     else:
         return DataLoader(dataset, batch_size=params.batch_size, shuffle=shuffled)
-
-
-def load_img(path):
-    """Loads image into RGB format (PIL)."""
-
-    return Image.open(path).convert('RGB')
-
-
-def show_img(tensor):
-    """Visualizes Torch tensor as PIL image."""
-
-    img = tvF.to_pil_image(tensor)
-    img.show()
-
-
-def psnr(source_denoised, target):
-    """Computes peak signal-to-noise ratio.
-    TODO: Find a pure PyTorch minibatch solution that also works on the GPU.
-          Not sure if possible since torch.mean() doesn't accept bytes...
-    """
-
-    s = np.array(tvF.to_pil_image(source_denoised.clamp(0, 1)))
-    t = np.array(tvF.to_pil_image(target))
-    return 10 * np.log10((255 ** 2) / ((s - t) ** 2).mean())
-
-
-def create_montage(img_name, save_path, noisy_t, denoised_t, clean_t, show):
-    """Creates montage for easy comparison."""
-
-    fig, ax = plt.subplots(1, 3, figsize=(9, 3))
-    fig.canvas.set_window_title(img_name.capitalize()[:-4])
-
-    # Bring tensors to CPU
-    noisy_t = noisy_t.cpu()
-    denoised_t = denoised_t.cpu()
-    clean_t = clean_t.cpu()
-
-    # Convert to PIL images
-    noisy = tvF.to_pil_image(noisy_t)
-    denoised = tvF.to_pil_image(torch.clamp(denoised_t, 0, 1))
-    clean = tvF.to_pil_image(clean_t)
-
-    # Build image montage
-    psnr_vals = [psnr(noisy_t, clean_t), psnr(denoised_t, clean_t)]
-    titles = ['Input: {:.2f} dB'.format(psnr_vals[0]),
-              'Denoised: {:.2f} dB'.format(psnr_vals[1]),
-              'Ground truth']
-    zipped = zip(titles, [noisy, denoised, clean])
-    for j, (title, img) in enumerate(zipped):
-        ax[j].imshow(img)
-        ax[j].set_title(title)
-        ax[j].axis('off')
-
-    # Open pop up window, if requested
-    if show > 0:
-        plt.show()
-
-    # Save to files
-    fname = os.path.splitext(img_name)[0]
-    noisy.save(os.path.join(save_path, '{}-noisy.png'.format(fname)))
-    denoised.save(os.path.join(save_path, '{}-denoised.png'.format(fname)))
-    fig.savefig(os.path.join(save_path, '{}-montage.png'.format(fname)), bbox_inches='tight')
 
 
 class AbstractDataset(Dataset):
@@ -115,19 +54,25 @@ class AbstractDataset(Dataset):
         self.crop_size = crop_size
 
 
-    def _random_crop(self, img):
-        """Performs random square crop of fixed size."""
+    def _random_crop(self, img_list):
+        """Performs random square crop of fixed size.
+        Works with list so that all items get the same cropped window (e.g. for buffers).
+        """
 
-        w, h = img.size
-
-        # Resize if dimensions are too small
-        if min(w, h) < self.crop_size:
-            return tvF.resize(img, (self.crop_size, self.crop_size))
-
+        w, h = img_list[0].size
+        cropped_imgs = []
         i = np.random.randint(0, h - self.crop_size + 1)
         j = np.random.randint(0, w - self.crop_size + 1)
+        
+        for img in img_list:
+            # Resize if dimensions are too small
+            if min(w, h) < self.crop_size:
+                img = tvF.resize(img, (self.crop_size, self.crop_size))
 
-        return tvF.crop(img, i, j, self.crop_size, self.crop_size)
+            # Random crop
+            cropped_imgs.append(tvF.crop(img, i, j, self.crop_size, self.crop_size))
+
+        return cropped_imgs
 
 
     def __getitem__(self, index):
@@ -140,13 +85,12 @@ class AbstractDataset(Dataset):
         """Returns length of dataset."""
 
         return len(self.imgs)
-
-
+        
+        
 class NoisyDataset(AbstractDataset):
     """Class for injecting random noise into dataset."""
 
-    def __init__(self, root_dir, redux, crop_size, noise_dist=('gaussian', 50.), 
-        clean_targets=False, normalize=False, test=False):
+    def __init__(self, root_dir, redux, crop_size, noise_dist=('gaussian', 50.), clean_targets=False):
         """Initializes noisy image dataset."""
 
         super(NoisyDataset, self).__init__(root_dir, redux, crop_size)
@@ -159,9 +103,8 @@ class NoisyDataset(AbstractDataset):
         self.noise_type = noise_dist[0]
         self.noise_param = noise_dist[1]
 
+        # Use clean targets
         self.clean_targets = clean_targets
-        self.test = test
-        self.normalize = normalize
 
 
     def _add_noise(self, img):
@@ -175,9 +118,8 @@ class NoisyDataset(AbstractDataset):
             noise = np.random.poisson(self.noise_param, (h, w, c))
 
         # Normal distribution (default)
-        # Fix noise parameter when testing
         else:
-            std = self.noise_param if self.test else np.random.uniform(0, self.noise_param)
+            std = np.random.uniform(0, self.noise_param)
             noise = np.random.normal(0, std, (h, w, c))
 
         # Add noise and clip
@@ -194,11 +136,7 @@ class NoisyDataset(AbstractDataset):
         c = len(img.getbands())
 
         # Choose font and get ready to draw
-        if platform == 'linux':
-            serif = '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'
-        else:
-            serif = 'Times New Roman.ttf'
-        font = ImageFont.truetype(serif, 20)
+        font = ImageFont.truetype('Times New Roman.ttf', 24)
         text_img = img.copy()
         draw = ImageDraw.Draw(text_img)
 
@@ -229,11 +167,11 @@ class NoisyDataset(AbstractDataset):
 
         # Load PIL image
         img_path = os.path.join(self.root_dir, self.imgs[index])
-        img = load_img(img_path)
+        img =  Image.open(img_path).convert('RGB')
 
         # Random square crop
         if self.crop_size != 0:
-            img = self._random_crop(img)
+            img = self._random_crop([img])[0]
 
         # Corrupt source image
         source = tvF.to_tensor(self._corrupt(img))
@@ -244,14 +182,9 @@ class NoisyDataset(AbstractDataset):
         else:
             target = tvF.to_tensor(self._corrupt(img))
 
-        if self.normalize:
-            mean, std = [0.5] * 3, [0.5] * 3
-            source = tvF.normalize(source, mean, std)
-            target = tvF.normalize(source, mean, std)
-            
         return source, target
-
-
+        
+        
 class MonteCarloDataset(AbstractDataset):
     """Class for dealing with HDR Monte Carlo rendered images."""
 
@@ -267,7 +200,7 @@ class MonteCarloDataset(AbstractDataset):
         self.normals = os.listdir(os.path.join(root_dir, 'normal'))
 
         if redux:
-            self.imgs = self.renders[:redux]
+            self.imgs = self.imgs[:redux]
             self.albedos = self.albedos[:redux]
             self.normals = self.normals[:redux]
 
@@ -275,58 +208,104 @@ class MonteCarloDataset(AbstractDataset):
         self.tone_mapping = tone_mapping
 
 
-    def _tone_map(self, img_path):
-        """Tonemaps image using Reinhard et al. (2002).
-        TODO: Check if this is correct
-        """
+    def _load_hdr(self, img_path, tonemap):
+        """Converts OpenEXR image to PIL format."""
 
         # Read OpenEXR file
+        if not OpenEXR.isOpenExrFile(img_path):
+            raise ValueError('HDR images must be in OpenEXR (.exr) format')
         src = OpenEXR.InputFile(img_path)
         pixel_type = Imath.PixelType(Imath.PixelType.FLOAT)
         dw = src.header()['dataWindow']
         size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
 
-        # Reinhard tone mapping
+        # Load as float and tonemap
         rgb = [np.frombuffer(src.channel(c, pixel_type), dtype=np.float32) for c in 'RGB']
-        for i in range(3):
-            rgb[i] = 255. * np.power(rgb[i] / (1 + rgb[i]), 1 / 2.2)
-
+        if tonemap:
+            rgb = reinhard_tonemap(rgb)
         rgb8 = [Image.frombytes('F', size, c.tostring()).convert('L') for c in rgb]
+        
         return Image.merge('RGB', rgb8)
 
 
     def __getitem__(self, index):
-        """Retrieves image from rendered images folder."""
+        """Retrieves image from folder and corrupts it."""
 
         # Select random Monte Carlo render for target
         indices = list(range(len(self.imgs)))
         indices.remove(index)
-        target_index = random.choice(indices)
+        target_index = choice(indices)
 
         # Apply tone mapping
         render_path = os.path.join(self.root_dir, 'render', self.imgs[index])
         target_path = os.path.join(self.root_dir, 'render', self.imgs[target_index])
-        if self.tone_mapping == 'source':
-            render = self._tone_map(render_path)
-        elif self.tone_mapping == 'target':
-            target = self._tone_map(target_path)
-        elif self.tone_mapping == 'both':
-            render = self._tone_map(render_path)
-            target = self._tone_map(target_path)
-        else:
-            render = self.imgs[index]
-            target = self.imgs[target_index]
-
-        render.save('test.png', 'PNG', quality=100)
+        render = Image.open(render_path).convert('RGB')
+        target = Image.open(target_path).convert('RGB') 
 
         # Get other buffers
-        render = tvF.to_tensor(render)
+        #render = tvF.to_tensor(render)
         albedo_path = os.path.join(self.root_dir, 'albedo', self.albedos[index])
-        albedo = tvF.to_tensor(albedo_path)
-        normal_path = os.path.join(self.root_dir, 'albedo', self.normals[index])
-        normal = tvF.to_tensor(normal_path)
+        albedo = Image.open(albedo_path).convert('RGB')
+        normal_path =  os.path.join(self.root_dir, 'normal', self.normals[index])
+        normal = Image.open(normal_path).convert('RGB')
+        
+        # Crop
+        if self.crop_size != 0:
+            buffers = [render, albedo, normal, target]
+            buffers = [tvF.to_tensor(b) for b in self._random_crop(buffers)]
 
-        # Stack tensors to create input volume
-        source = torch.stack([render, albedo, normal])
+        # Stack buffers to create input volume
+        source = torch.cat(buffers[:3], dim=0)
+        target = buffers[3]
 
         return source, target
+
+    """
+    def __getitem__(self, index):
+
+        # Select random Monte Carlo render for target
+        indices = list(range(len(self.imgs)))
+        indices.remove(index)
+        target_index = choice(indices)
+
+        # Apply tone mapping
+        render_path = os.path.join(self.root_dir, 'render', self.imgs[index])
+        target_path = os.path.join(self.root_dir, 'render', self.imgs[target_index])
+        
+        # Apply tone mapping to desired images
+        source_tonemap = self.tone_mapping in ['source', 'both']
+        target_tonemap = self.tone_mapping in ['target', 'both']
+        render = self._load_hdr(render_path, tonemap=source_tonemap)
+        target = self._load_hdr(target_path, tonemap=target_tonemap)   
+
+        # Get other buffers
+        #render = tvF.to_tensor(render)
+        albedo_path = os.path.join(self.root_dir, 'albedo', self.albedos[index])
+        albedo = self._load_hdr(albedo_path, tonemap=source_tonemap)
+        normal_path =  os.path.join(self.root_dir, 'normal', self.normals[index])
+        normal = self._load_hdr(normal_path, tonemap=source_tonemap)
+        
+        # Crop
+        if self.crop_size != 0:
+            buffers = [render, albedo, normal, target]
+            buffers = [tvF.to_tensor(b) for b in self._random_crop(buffers)]
+
+        # Stack buffers to create input volume
+        source = torch.cat(buffers[:3], dim=0)
+        target = buffers[3]
+
+        return source, target
+    """
+        
+        
+if __name__ == '__main__':
+    mc = MonteCarloDataset('../data/tonemapped_train', 0, 128, 'both')
+    s, t = mc[0]
+    t = tvF.to_pil_image(t)
+    s0 = tvF.to_pil_image(s.narrow(0, 0, 3))
+    s1 = tvF.to_pil_image(s.narrow(0, 3, 3))
+    s2 = tvF.to_pil_image(s.narrow(0, 6, 3))
+    s0.save('source.png')
+    s1.save('albedo.png')
+    s2.save('normal.png')
+    t.save('target.png')
