@@ -1,4 +1,4 @@
-# Noise2Noise
+# Noise2Noise: Learning Image Restoration without Clean Data
 
 This is a *weekend (partial and unfinished)* PyTorch implementation of [Noise2Noise](https://arxiv.org/abs/1803.04189) (Lehtinen et al. 2018). As such, it is still very much a work-in-progress.
 
@@ -191,10 +191,15 @@ python3 train.py \
 - [ ] Fix RedNet baseline skip connections (low priority)
 
 ## References
-* Jaakko Lehtinen, Jacob Munkberg, Jon Hasselgren, Samuli Laine, Tero Karras, Miika Aittala,and Timo Aila. *Noise2Noise: Learning Image Restoration without Clean Data*, in Proceedings of ICML, 2018.
+* Jaakko Lehtinen, Jacob Munkberg, Jon Hasselgren, Samuli Laine, Tero Karras, Miika Aittala,and Timo Aila. *Noise2Noise: Learning Image Restoration without Clean Data*. Proceedings of the 35th International Conference on Machine Learning, 2018.
 
 * Tsung-Yi Lin, Michael Maire, Serge Belongie, Lubomir Bourdev, Ross Girshick, James Hays, Pietro Perona, Deva Ramanan, C. Lawrence Zitnick, and Piotr Dollár. *Microsoft COCO: Common Objects in Context*. 	arXiv:1405.0312, 2014.
 
+* Benedikt Bitterli, Fabrice Rousselle, Bochang Moon, José A. Iglesias-Guitián, David Adler, Kenny Mitchell, Wojciech Jarosz, and Jan Novák. *Nonlinearly Weighted First-order Regression
+for Denoising Monte Carlo Renderings*. Computer Graphics Forum (Proceedings of EGSR 2016), 2016.
+
+* Benedikt Bitterli. *Tungsten Renderer.* GitHub repository: `tunabrain/tungsten`, 2018.
+
 ## Acknowledgments
 
-I would like to acknowledge [Yusuke Uchida](https://yu4u.github.io/) for his [Keras implementation of Noise2Noise](https://github.com/yu4u/noise2noise). Although Keras and PyTorch are very different frameworks, parts of his code did help me in completing this implementation.
+I would like to acknowledge [Yusuke Uchida](https://yu4u.github.io/) for his [Keras implementation of Noise2Noise](https://github.com/yu4u/noise2noise). Although Keras and PyTorch are very different frameworks, parts of his code did help me in completing this implementation. Also major thanks to Benedikt Bitterli for releasing his work publicly.
