@@ -3,7 +3,7 @@
 
 import torch
 import torch.nn as nn
-from torch.optim import Adam
+from torch.optim import Adam, lr_scheduler
 from unet import UNet
 from utils import *
 from datasets import psnr, create_montage
@@ -36,6 +36,9 @@ class Noise2Noise(object):
                                 lr=self.p.learning_rate,
                                 betas=self.p.adam[:2],
                                 eps=self.p.adam[2])
+                                
+            # Learning rate adjustment
+            self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, patience=3, verbose=True)
 
             # Loss function
             if self.p.loss == 'hdr':
@@ -235,6 +238,9 @@ class Noise2Noise(object):
             epoch_time = time_elapsed_since(epoch_start)[0]
             valid_loss, valid_time, valid_psnr = self.eval(valid_loader)
             show_on_epoch_end(epoch_time, valid_time, valid_loss, valid_psnr)
+            
+            # Decrease learning rate if plateau
+            self.scheduler.step(valid_loss)
 
             # Save checkpoint
             stats['train_loss'].append(train_loss_meter.avg)

@@ -1,5 +1,5 @@
-python ../train.py \
-  --data ../../data --train-size 5000 --valid-size 1000 \
+python3 ../train.py \
+  --data ../../data --train-size 8000 --valid-size 2000 \
   --ckpt-save-path ../../ckpts \
   --report-interval 50 \
   --nb-epochs 100 \

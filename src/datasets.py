@@ -145,7 +145,8 @@ class AbstractDataset(Dataset):
 class NoisyDataset(AbstractDataset):
     """Class for injecting random noise into dataset."""
 
-    def __init__(self, root_dir, redux, crop_size, noise_dist=('gaussian', 50.), clean_targets=False):
+    def __init__(self, root_dir, redux, crop_size, noise_dist=('gaussian', 50.), 
+        clean_targets=False, normalize=False):
         """Initializes noisy image dataset."""
 
         super(NoisyDataset, self).__init__(root_dir, redux, crop_size)
@@ -241,6 +242,10 @@ class NoisyDataset(AbstractDataset):
         else:
             target = tvF.to_tensor(self._corrupt(img))
 
+        if self.normalize:
+            mean, std = [0.5] * 3, [0.5] * 3
+            source = tvF.normalize(source, mean, std)
+            target = tvF.normalize(source, mean, std)
         return source, target
 
 
