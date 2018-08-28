@@ -1,4 +1,4 @@
-# Noise2Noise
+# Noise2Noise: Learning Image Restoration without Clean Data
 
 This is a *weekend (partial and unfinished)* PyTorch implementation of [Noise2Noise](https://arxiv.org/abs/1803.04189) (Lehtinen et al. 2018). As such, it is still very much a work-in-progress.
 
