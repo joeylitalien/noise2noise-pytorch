@@ -6,7 +6,6 @@ import torch.nn as nn
 from torch.optim import Adam, lr_scheduler
 from unet import UNet
 from utils import *
-from datasets import psnr, create_montage
 import os
 import json
 
@@ -27,11 +26,16 @@ class Noise2Noise(object):
 
         print('Noise2Noise: Learning Image Restoration without Clean Data (Lethinen et al., 2018)')
 
-        # Model
-        self.model = UNet()
+        # Model (3x3=9 channels for Monte Carlo since it uses 3 HDR buffers)
+        if self.p.noise_type == 'mc':
+            self.is_mc = True
+            self.model = UNet(in_channels=9)
+        else:
+            self.is_mc = False
+            self.model = UNet(in_channels=3)
 
+        # Set optimizer and loss, if in training mode
         if self.trainable:
-            # Optimizer
             self.optim = Adam(self.model.parameters(),
                                 lr=self.p.learning_rate,
                                 betas=self.p.adam[:2],
@@ -42,7 +46,8 @@ class Noise2Noise(object):
 
             # Loss function
             if self.p.loss == 'hdr':
-                self.loss = lambda d, t: ((d - t) ** 2) / (d + 0.01) ** 2
+                assert self.is_mc, 'Using HDR loss on non Monte Carlo images'
+                self.loss = HDRLoss()
             elif self.p.loss == 'l2':
                 self.loss = nn.MSELoss()
             else:
@@ -62,8 +67,8 @@ class Noise2Noise(object):
         print('Training parameters:')
         self.p.cuda = self.use_cuda
         param_dict = vars(self.p)
-        pretty = lambda x: x.replace('_', ' ').replace('ckpt ', 'checkpoint ').capitalize()
-        print('\n'.join('  {} = {}'.format(pretty(k), pretty(str(v))) for k, v in param_dict.items()))
+        pretty = lambda x: x.replace('_', ' ').capitalize()
+        print('\n'.join('  {} = {}'.format(pretty(k), str(v)) for k, v in param_dict.items()))
         print()
 
 
@@ -78,8 +83,9 @@ class Noise2Noise(object):
                 timestamp = f'{datetime.now():{self.p.noise_type}-%H%M}'
             
             self.ckpt_dir = os.path.join(self.p.ckpt_save_path, timestamp)
-            if not os.path.isdir(self.ckpt_dir):
-                os.mkdir(self.ckpt_dir)
+            if not os.path.isdir(self.p.ckpt_save_path):
+                os.mkdir(self.p.ckpt_save_path)
+            os.mkdir(self.ckpt_dir)
 
         if self.p.ckpt_overwrite:
             fname_unet = '{}/n2n-{}.pt'.format(self.ckpt_dir, self.p.noise_type)
@@ -103,6 +109,31 @@ class Noise2Noise(object):
             self.model.load_state_dict(torch.load(ckpt_fname))
         else:
             self.model.load_state_dict(torch.load(ckpt_fname, map_location='cpu'))
+            
+            
+    def _on_epoch_end(self, stats, train_loss, epoch, epoch_start, valid_loader):
+        """Tracks and saves starts after each epoch."""
+        
+        # Evaluate model on validation set
+        print('\rTesting model on validation set... ', end='')
+        epoch_time = time_elapsed_since(epoch_start)[0]
+        valid_loss, valid_time, valid_psnr = self.eval(valid_loader)
+        show_on_epoch_end(epoch_time, valid_time, valid_loss, valid_psnr)
+        
+        # Decrease learning rate if plateau
+        self.scheduler.step(valid_loss)
+
+        # Save checkpoint
+        stats['train_loss'].append(train_loss)
+        stats['valid_loss'].append(valid_loss)
+        stats['valid_psnr'].append(valid_psnr)
+        self.save_model(epoch, stats, epoch == 0)
+
+        # Plot stats
+        if self.p.plot_stats:
+            loss_str = f'{self.p.loss} loss'.capitalize()
+            plot_per_epoch(self.ckpt_dir, 'Valid loss', stats['valid_loss'], loss_str)
+            plot_per_epoch(self.ckpt_dir, 'Valid PSNR', stats['valid_psnr'], 'PSNR (dB)')
 
 
     def test(self, test_loader, show):
@@ -124,7 +155,10 @@ class Noise2Noise(object):
             if show == 0 or batch_idx >= show:
                 break
 
-            noisy_imgs.append(source)
+            if self.is_mc:
+                noisy_imgs.append(source.narrow(1, 0, 3))
+            else:
+                noisy_imgs.append(source)
             clean_imgs.append(target)
 
             if self.use_cuda:
@@ -168,13 +202,18 @@ class Noise2Noise(object):
             loss_meter.update(loss.item())
 
             # Compute PSRN
-            # TODO: Find a way to offload to GPU
+            # TODO: Find a way to offload to GPU, and deal with non-even batch sizes
             for i in range(self.p.batch_size):
 
                 if self.use_cuda:
                     source_denoised = source_denoised.cpu()
                     target = target.cpu()
-                psnr_meter.update(psnr(source_denoised[i], target[i]).item())
+                    
+                # Monte Carlo check, have to slice buffers to compute PSNR
+                s = source_denoised[i].narrow(0, 0, 3) if self.is_mc else source_denoised[i]
+                t = target[i]
+                
+                psnr_meter.update(psnr(s, t).item())
 
         valid_loss = loss_meter.avg
         valid_time = time_elapsed_since(valid_start)[0]
@@ -200,7 +239,7 @@ class Noise2Noise(object):
                  'valid_psnr': []}
 
         # Main training loop
-        start = datetime.now()
+        train_start = datetime.now()
         for epoch in range(self.p.nb_epochs):
             print('EPOCH {:d} / {:d}'.format(epoch + 1, self.p.nb_epochs))
 
@@ -221,6 +260,7 @@ class Noise2Noise(object):
 
                 # Denoise image
                 source_denoised = self.model(source)
+                
                 loss = self.loss(source_denoised, target)
                 loss_meter.update(loss.item())
 
@@ -236,28 +276,30 @@ class Noise2Noise(object):
                     train_loss_meter.update(loss_meter.avg)
                     loss_meter.reset()
                     time_meter.reset()
-
-            # Evaluate model on validation set
-            print('\rTesting model on validation set... ', end='')
-            epoch_time = time_elapsed_since(epoch_start)[0]
-            valid_loss, valid_time, valid_psnr = self.eval(valid_loader)
-            show_on_epoch_end(epoch_time, valid_time, valid_loss, valid_psnr)
             
-            # Decrease learning rate if plateau
-            self.scheduler.step(valid_loss)
-
-            # Save checkpoint
-            stats['train_loss'].append(train_loss_meter.avg)
+            # Epoch end, save and reset tracker
+            self._on_epoch_end(stats, train_loss_meter.avg, epoch, epoch_start, valid_loader)
             train_loss_meter.reset()
-            stats['valid_loss'].append(valid_loss)
-            stats['valid_psnr'].append(valid_psnr)
-            self.save_model(epoch, stats, epoch == 0)
 
-            # Plot stats
-            if self.p.plot_stats:
-                loss_str = f'{self.p.loss} loss'.capitalize()
-                plot_per_epoch(self.ckpt_dir, 'Valid loss', stats['valid_loss'], loss_str)
-                plot_per_epoch(self.ckpt_dir, 'Valid PSNR', stats['valid_psnr'], 'PSNR (dB)')
+        train_elapsed = time_elapsed_since(train_start)[0]
+        print('Training done! Total elapsed time: {}\n'.format(train_elapsed))
 
-        elapsed = time_elapsed_since(start)[0]
-        print('Training done! Total elapsed time: {}\n'.format(elapsed))
+
+class HDRLoss(nn.Module):
+    """High dynamic range loss."""
+    
+    def __init__(self, eps=0.01):
+        """Initializes loss with numerical stability epsilon."""
+        
+        super(HDRLoss, self).__init__()
+        self._eps = eps
+
+
+    def forward(self, input, target):
+        """Computes loss by unpacking render buffer."""
+
+        #denoised = reinhard_tonemap_tensor(input.narrow(1, 0, 3))
+        denoised = input.narrow(1, 0, 3)
+        loss = ((denoised - target) ** 2) / (denoised + self._eps) ** 2
+        return torch.mean(loss.view(-1))
+    
