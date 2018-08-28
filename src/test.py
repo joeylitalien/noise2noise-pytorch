@@ -3,11 +3,8 @@
 
 import torch
 import torch.nn as nn
-
-from dataset import *
+from datasets import load_dataset
 from noise2noise import Noise2Noise
-
-import os
 from argparse import ArgumentParser
 
 

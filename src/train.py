@@ -3,11 +3,8 @@
 
 import torch
 import torch.nn as nn
-
-from dataset import *
+from datasets import load_dataset
 from noise2noise import Noise2Noise
-
-import os
 from argparse import ArgumentParser
 
 
@@ -30,7 +27,8 @@ def parse_args():
     parser.add_argument('-a', '--adam', help='adam parameters', nargs='+', default=[0.9, 0.99, 1e-8], type=list)
     parser.add_argument('-b', '--batch-size', help='minibatch size', default=4, type=int)
     parser.add_argument('-e', '--nb-epochs', help='number of epochs', default=100, type=int)
-    parser.add_argument('-l', '--loss', help='loss function', choices=['l1', 'l2', 'rmse'], default='l1', type=str)
+    parser.add_argument('-l', '--loss', help='loss function', choices=['l1', 'l2', 'hdr'], default='l1', type=str)
+    parser.add_argument('--tonemap', help='reinhard tone mapping combination (for monte carlo)', choices=['none', 'source', 'target', 'both'], default='none', type=str)
     parser.add_argument('--cuda', help='use cuda', action='store_true')
     parser.add_argument('--plot-stats', help='plot stats after every epoch', action='store_true')
 
