@@ -8,14 +8,14 @@ import torch.nn as nn
 class UNet(nn.Module):
     """Custom U-Net architecture for Noise2Noise (see Appendix, Table 2)."""
 
-    def __init__(self, channels=3):
+    def __init__(self, in_channels=3):
         """Initializes U-Net."""
 
         super(UNet, self).__init__()
 
         # Layers: enc_conv0, enc_conv1, pool1
         self._block1 = nn.Sequential(
-            nn.Conv2d(channels, 48, 3, stride=1, padding=1),
+            nn.Conv2d(in_channels, 48, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 48, 3, padding=1),
             nn.ReLU(inplace=True),
@@ -54,7 +54,7 @@ class UNet(nn.Module):
 
         # Layers: dec_conv1a, dec_conv1b, dec_conv1c,
         self._block6 = nn.Sequential(
-            nn.Conv2d(96 + channels, 64, 3, stride=1, padding=1),
+            nn.Conv2d(96 + in_channels, 64, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(64, 32, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
