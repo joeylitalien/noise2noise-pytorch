@@ -70,6 +70,7 @@ def plot_per_epoch(ckpt_dir, title, measurements, y_label):
     fname = '{}.png'.format(title.replace(' ', '-').lower())
     plot_fname = os.path.join(ckpt_dir, fname)
     plt.savefig(plot_fname, dpi=200)
+    plt.close()
 
 
 class AvgMeter(object):

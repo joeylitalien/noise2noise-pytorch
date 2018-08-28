@@ -1,5 +1,5 @@
 python ../train.py \
-  --data ../../data --train-size 1000 --valid-size 200 \
+  --data ../../data --train-size 5000 --valid-size 1000 \
   --ckpt-save-path ../../ckpts \
   --report-interval 50 \
   --nb-epochs 100 \
@@ -8,4 +8,4 @@ python ../train.py \
   --noise-param 50 \
   --crop-size 128 \
   --plot-stats \
-  --cuda 1
+  --cuda

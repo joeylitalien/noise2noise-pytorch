@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from unet import UNet
 from utils import *
+from datasets import psnr, create_montage
 import os
 import json
 
@@ -162,6 +163,10 @@ class Noise2Noise(object):
             # Compute PSRN
             # TODO: Find a way to offload to GPU
             for i in range(self.p.batch_size):
+
+                if self.use_cuda:
+                    source_denoised = source_denoised.cpu()
+                    target = target.cpu()
                 psnr_meter.update(psnr(source_denoised[i], target[i]).item())
 
         valid_loss = loss_meter.avg

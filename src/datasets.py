@@ -7,6 +7,7 @@ import torchvision.transforms.functional as tvF
 from torch.utils.data import Dataset, DataLoader
 
 import os
+from sys import platform
 import numpy as np
 from random import choice
 from string import ascii_letters
@@ -24,7 +25,7 @@ def load_dataset(img_dir, redux, params, shuffled=False, single=False):
     # Create Torch dataset
     noise = (params.noise_type, params.noise_param)
     path = os.path.join(params.data, img_dir)
-    
+
     if params.noise_type == 'mc':
         dataset = MonteCarloDataset(path, redux, params.crop_size, params.tonemap)
     else:
@@ -57,8 +58,6 @@ def psnr(source_denoised, target):
           Not sure if possible since torch.mean() doesn't accept bytes...
     """
 
-    s = source_denoised.detach()
-    t = target.detach()
     s = np.array(tvF.to_pil_image(source_denoised.clamp(0, 1)))
     t = np.array(tvF.to_pil_image(target))
     return 10 * np.log10((255 ** 2) / ((s - t) ** 2).mean())
@@ -141,8 +140,8 @@ class AbstractDataset(Dataset):
         """Returns length of dataset."""
 
         return len(self.imgs)
-        
-        
+
+
 class NoisyDataset(AbstractDataset):
     """Class for injecting random noise into dataset."""
 
@@ -192,7 +191,11 @@ class NoisyDataset(AbstractDataset):
         c = len(img.getbands())
 
         # Choose font and get ready to draw
-        font = ImageFont.truetype('Times New Roman.ttf', 20)
+        if platform == 'linux':
+            serif = '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'
+        else:
+            serif = 'Times New Roman.ttf'
+        font = ImageFont.truetype(serif, 20)
         text_img = img.copy()
         draw = ImageDraw.Draw(text_img)
 
@@ -239,8 +242,8 @@ class NoisyDataset(AbstractDataset):
             target = tvF.to_tensor(self._corrupt(img))
 
         return source, target
-        
-        
+
+
 class MonteCarloDataset(AbstractDataset):
     """Class for dealing with HDR Monte Carlo rendered images."""
 

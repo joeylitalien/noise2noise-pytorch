@@ -20,7 +20,7 @@ This code was tested on Python 3.6.5 on macOS High Sierra (10.13.4) and Ubuntu 1
 
 ## Dataset
 
-### Image dataset 
+### Image dataset
 
 The authors use [ImageNet](http://image-net.org/download), but any dataset will do. [COCO 2017](http://cocodataset.org/#download) has a small validation set (1 GB) which can be nicely split into train/valid for easier training. For instance, to obtain a 4200/800 train/valid split you can do:
 ```
@@ -47,7 +47,7 @@ Add your favorite images to the `data/test` folder. Only a handful will do to vi
 
 ### Monte Carlo rendering dataset
 
-See [below to create your own](#generating-renders), or download the [vintage car dataset](https://mcgill-my.sharepoint.com/:u:/g/personal/joey_litalien_mail_mcgill_ca/EZGXHwmRdRBAkxrHGCC-48IBb4-LNdxXJ3ZYvjFGH6EMaA?e=Apx17N) (25 path tracing renders with albedo and normal buffers). 
+See [below to create your own](#generating-renders), or download the [vintage car dataset](https://mcgill-my.sharepoint.com/:u:/g/personal/joey_litalien_mail_mcgill_ca/EZGXHwmRdRBAkxrHGCC-48IBb4-LNdxXJ3ZYvjFGH6EMaA?e=Apx17N) (25 path tracing renders @ 16 spp with albedo and normal buffers).
 
 You can also download the [dataset](https://benedikt-bitterli.me/nfor/denoising-data.zip) used in [Nonlinearly Weighted First-order Regression
 for Denoising Monte Carlo Renderings](https://benedikt-bitterli.me/nfor/) by Bitterli et al., which is open source. Note that you will need to manually organize its content into render/albedo/normal sudirectories for this dataset to work with this implementation.

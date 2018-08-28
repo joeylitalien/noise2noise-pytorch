@@ -28,9 +28,9 @@ def config_scene(scene_path, spp):
         buffer_dict['sample_variance'] = False
         scene['renderer']['output_buffers'].append(buffer_dict)
 
-    # Update SPP count and tone mapping
+    # Update SPP count
     scene['renderer']['spp'] = spp
-    scene['camera']['tonemap'] = 'linear'
+    #scene['camera']['tonemap'] = 'linear'
 
     # Save new scene
     scene_dir = os.path.dirname(os.path.splitext(scene_path)[0])
