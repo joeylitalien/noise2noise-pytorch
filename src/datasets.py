@@ -19,7 +19,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 
-def load_dataset(img_dir, redux, params, shuffled=False, single=False):
+def load_dataset(img_dir, redux, params, shuffled=False, single=False, test=False):
     """Loads dataset and returns corresponding data loader."""
 
     # Create Torch dataset
@@ -30,7 +30,7 @@ def load_dataset(img_dir, redux, params, shuffled=False, single=False):
         dataset = MonteCarloDataset(path, redux, params.crop_size, params.tonemap)
     else:
         dataset = NoisyDataset(path, redux, params.crop_size, noise_dist=noise,
-                    clean_targets=params.clean_targets)
+                    clean_targets=params.clean_targets, test=test)
 
     # Use batch size of 1, if requested (e.g. test set)
     if single:
@@ -146,7 +146,7 @@ class NoisyDataset(AbstractDataset):
     """Class for injecting random noise into dataset."""
 
     def __init__(self, root_dir, redux, crop_size, noise_dist=('gaussian', 50.), 
-        clean_targets=False, normalize=False):
+        clean_targets=False, normalize=False, test=False):
         """Initializes noisy image dataset."""
 
         super(NoisyDataset, self).__init__(root_dir, redux, crop_size)
@@ -159,8 +159,8 @@ class NoisyDataset(AbstractDataset):
         self.noise_type = noise_dist[0]
         self.noise_param = noise_dist[1]
 
-        # Use clean targets
         self.clean_targets = clean_targets
+        self.test = test
         self.normalize = normalize
 
 
@@ -175,8 +175,9 @@ class NoisyDataset(AbstractDataset):
             noise = np.random.poisson(self.noise_param, (h, w, c))
 
         # Normal distribution (default)
+        # Fix noise parameter when testing
         else:
-            std = np.random.uniform(0, self.noise_param)
+            std = self.noise_param if self.test else np.random.uniform(0, self.noise_param)
             noise = np.random.normal(0, std, (h, w, c))
 
         # Add noise and clip

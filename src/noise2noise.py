@@ -38,7 +38,7 @@ class Noise2Noise(object):
                                 eps=self.p.adam[2])
                                 
             # Learning rate adjustment
-            self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, patience=3, verbose=True)
+            self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, patience=5, verbose=True)
 
             # Loss function
             if self.p.loss == 'hdr':

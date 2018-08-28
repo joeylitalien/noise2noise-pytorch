@@ -1,7 +1,7 @@
 python3 ../test.py \
   --data ../../data \
-  --load-ckpt ../../ckpts/gaussian-180827-2224/n2n-epoch10-0.01213.pt \
+  --load-ckpt ../../ckpts/gaussian-0212/n2n-epoch15-0.01182.pt \
   --noise-type gaussian \
-  --noise-param 50 \
+  --noise-param 30 \
   --crop-size 512 \
   --show-output 1
