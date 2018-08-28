@@ -49,8 +49,7 @@ Add your favorite images to the `data/test` folder. Only a handful will do to vi
 
 See [below to create your own](#generating-renders), or download the [vintage car dataset](https://mcgill-my.sharepoint.com/:u:/g/personal/joey_litalien_mail_mcgill_ca/EZGXHwmRdRBAkxrHGCC-48IBb4-LNdxXJ3ZYvjFGH6EMaA?e=Apx17N) (25 path tracing renders @ 16 spp with albedo and normal buffers).
 
-You can also download the [dataset](https://benedikt-bitterli.me/nfor/denoising-data.zip) used in [Nonlinearly Weighted First-order Regression
-for Denoising Monte Carlo Renderings](https://benedikt-bitterli.me/nfor/) by Bitterli et al., which is open source. Note that you will need to manually organize its content into render/albedo/normal sudirectories for this dataset to work with this implementation.
+You can also download the [dataset](https://benedikt-bitterli.me/nfor/denoising-data.zip) used by [Bitterli et al. (2016)](https://benedikt-bitterli.me/nfor/), which is open source. Note that you will need to manually organize its content into render/albedo/normal sudirectories for this dataset to work with this implementation.
 
 ## Training
 
@@ -118,7 +117,7 @@ See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` 
 
 <table align="center">
   <tr align="center">
-    <th colspan=6>Gaussian noise</td>
+    <th colspan=6>Gaussian noise (σ = 30)</td>
     </tr>
   <tr align="center">
     <td colspan=2>Noisy input (28.27 dB)</td>
