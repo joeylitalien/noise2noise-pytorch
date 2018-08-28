@@ -116,6 +116,32 @@ python3 test.py \
 
 See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` for an example.
 
+<table align="center">
+  <tr align="center">
+    <th colspan=6>Gaussian noise</td>
+    </tr>
+  <tr align="center">
+    <td colspan=2>Noisy input (28.27 dB)</td>
+    <td colspan=2>Denoised (31.96 dB)</td>
+    <td colspan=2>Ground truth</td>
+  </tr>
+  <tr align="center">
+    <td colspan=2><img src="figures/lenna-noisy.png"></td>
+    <td colspan=2><img src="figures/lenna-denoised.png"></td>
+    <td colspan=2><img src="figures/lenna.png"></td>
+  </tr>  
+  <tr align="center">
+    <td colspan=2>Noisy input (28.23 dB)</td>
+    <td colspan=2>Denoised (32.77 dB)</td>
+    <td colspan=2>Ground truth</td>
+  </tr>
+  <tr align="center">
+    <td colspan=2><img src="figures/monarch-noisy.png"></td>
+    <td colspan=2><img src="figures/monarch-denoised.png"></td>
+    <td colspan=2><img src="figures/monarch.png"></td>
+  </tr>  
+</table>
+
 ## Monte Carlo rendering
 
 ### Downloading and building Tungsten
