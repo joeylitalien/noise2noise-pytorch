@@ -25,9 +25,9 @@ The authors use [ImageNet](http://image-net.org/download), but any dataset will 
 mkdir data && cd data
 mkdir train valid test
 wget http://images.cocodataset.org/zips/val2017.zip
-unzip -j val2017.zip -d train
-cd train && mv `ls | head -800` ../valid
-rm ../*.zip
+unzip val2017.zip && cd val2017
+mv `ls | head -4200` ../train
+mv `ls | head -800` ../valid
 ```
 
 You can also download the full datasets (7 GB) that more or less match the paper, if you have the bandwidth:
@@ -39,7 +39,6 @@ wget http://images.cocodataset.org/zips/test2017.zip
 wget http://images.cocodataset.org/zips/val2017.zip
 unzip -j test2017.zip -d train
 unzip -j val2017.zip -d valid
-rm *.zip
 ```
 
 Add your favorite images to the `data/test` folder. Only a handful will do to visually inspect the denoiser performance.
@@ -145,24 +144,25 @@ To launch a series of renders to build a training set, do:
 
 ```
 python3 render.py \
-  --scene-path ../../data/scenes/car/scene.json \
+  --scene-path ../data/scenes/car/scene.json \
   --spp 4 \
   --nb-renders 10 \
-  --output-dir ../../data/train
+  --output-dir ../data/train
 ```
 
 You can also specify the path to Tungsten if you have it installed somewhere else with the `--tungsten` argument. The default assumes it's in the environment path already.
 
-See `python3 render.py -h` for more info, or `render.sh` for the above example. You will have to manually remove the default output PNG images from your render directory after the jobs are done (`rm ../../data/renders/*.png`).
+See `python3 render.py -h` for more info, or run `render.sh` for an example.
 
 ### Training (not implemented yet)
 ```
 python3 train.py \
   --ckpt-save-path ../ckpts \
   --data ../data --train-size 10 --valid-size 1 \
+  --tonemap source \
   --nb-epochs 1000 \
   --learning-rate 0.001 \
-  --loss rmse \
+  --loss hdr \
   --noise-type mc \
   --crop-size 64 \
   --plot-stats
