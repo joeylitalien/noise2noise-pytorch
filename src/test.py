@@ -24,6 +24,7 @@ def parse_args():
     parser.add_argument('-n', '--noise-type', help='noise type',
         choices=['gaussian', 'poisson', 'text', 'mc'], default='gaussian', type=str)
     parser.add_argument('-v', '--noise-param', help='noise parameter (e.g. sigma for gaussian)', default=50, type=float)
+    parser.add_argument('--tonemap', help='reinhard tone mapping combination (for monte carlo)', choices=['none', 'source', 'target', 'both'], default='none', type=str)
     parser.add_argument('-c', '--crop-size', help='image crop size', default=256, type=int)
 
     return parser.parse_args()
@@ -39,6 +40,6 @@ if __name__ == '__main__':
     n2n = Noise2Noise(params, trainable=False)
     params.redux = False
     params.clean_targets = True
-    test_loader = load_dataset('test', 0, params, shuffled=False, single=True, test=True)
+    test_loader = load_dataset(params.data, 0, params, shuffled=False, single=True)
     n2n.load_model(params.load_ckpt)
     n2n.test(test_loader, show=params.show_output)
