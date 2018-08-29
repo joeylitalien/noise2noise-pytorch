@@ -37,12 +37,13 @@ class Noise2Noise(object):
         # Set optimizer and loss, if in training mode
         if self.trainable:
             self.optim = Adam(self.model.parameters(),
-                                lr=self.p.learning_rate,
-                                betas=self.p.adam[:2],
-                                eps=self.p.adam[2])
-                                
+                              lr=self.p.learning_rate,
+                              betas=self.p.adam[:2],
+                              eps=self.p.adam[2])
+
             # Learning rate adjustment
-            self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, patience=5, verbose=True)
+            self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optim,
+                patience=10, factor=0.5, verbose=True)
 
             # Loss function
             if self.p.loss == 'hdr':
@@ -64,7 +65,7 @@ class Noise2Noise(object):
     def _print_params(self):
         """Formats parameters to print when training."""
 
-        print('Training parameters:')
+        print('Training parameters: ')
         self.p.cuda = self.use_cuda
         param_dict = vars(self.p)
         pretty = lambda x: x.replace('_', ' ').capitalize()
@@ -81,12 +82,13 @@ class Noise2Noise(object):
                 timestamp = f'{datetime.now():{self.p.noise_type}-clean-%H%M}'
             else:
                 timestamp = f'{datetime.now():{self.p.noise_type}-%H%M}'
-            
+
             self.ckpt_dir = os.path.join(self.p.ckpt_save_path, timestamp)
             if not os.path.isdir(self.p.ckpt_save_path):
                 os.mkdir(self.p.ckpt_save_path)
             os.mkdir(self.ckpt_dir)
 
+        # Save checkpoint dictionary
         if self.p.ckpt_overwrite:
             fname_unet = '{}/n2n-{}.pt'.format(self.ckpt_dir, self.p.noise_type)
         else:
@@ -109,17 +111,17 @@ class Noise2Noise(object):
             self.model.load_state_dict(torch.load(ckpt_fname))
         else:
             self.model.load_state_dict(torch.load(ckpt_fname, map_location='cpu'))
-            
-            
+
+
     def _on_epoch_end(self, stats, train_loss, epoch, epoch_start, valid_loader):
         """Tracks and saves starts after each epoch."""
-        
+
         # Evaluate model on validation set
         print('\rTesting model on validation set... ', end='')
         epoch_time = time_elapsed_since(epoch_start)[0]
         valid_loss, valid_time, valid_psnr = self.eval(valid_loader)
         show_on_epoch_end(epoch_time, valid_time, valid_loss, valid_psnr)
-        
+
         # Decrease learning rate if plateau
         self.scheduler.step(valid_loss)
 
@@ -141,7 +143,7 @@ class Noise2Noise(object):
 
         self.model.train(False)
 
-        noisy_imgs = []
+        source_imgs = []
         denoised_imgs = []
         clean_imgs = []
 
@@ -155,10 +157,7 @@ class Noise2Noise(object):
             if show == 0 or batch_idx >= show:
                 break
 
-            if self.is_mc:
-                noisy_imgs.append(source.narrow(1, 0, 3))
-            else:
-                noisy_imgs.append(source)
+            source_imgs.append(source)
             clean_imgs.append(target)
 
             if self.use_cuda:
@@ -169,15 +168,15 @@ class Noise2Noise(object):
             denoised_imgs.append(denoised_img)
 
         # Squeeze tensors
-        noisy_imgs = [t.squeeze(0) for t in noisy_imgs]
+        source_imgs = [t.squeeze(0) for t in source_imgs]
         denoised_imgs = [t.squeeze(0) for t in denoised_imgs]
         clean_imgs = [t.squeeze(0) for t in clean_imgs]
 
         # Create montage and save images
         print('Saving images and montages to: {}'.format(save_path))
-        for i in range(len(noisy_imgs)):
+        for i in range(len(source_imgs)):
             img_name = test_loader.dataset.imgs[i]
-            create_montage(img_name, save_path, noisy_imgs[i], denoised_imgs[i], clean_imgs[i], show)
+            create_montage(img_name, save_path, source_imgs[i], denoised_imgs[i], clean_imgs[i], show)
 
 
     def eval(self, valid_loader):
@@ -198,22 +197,15 @@ class Noise2Noise(object):
             source_denoised = self.model(source)
 
             # Update loss
-            loss = self.loss(source_denoised, target)
+            loss = self.loss(source_denoised, reinhard_tonemap(target))
             loss_meter.update(loss.item())
 
             # Compute PSRN
-            # TODO: Find a way to offload to GPU, and deal with non-even batch sizes
+            # TODO: Find a way to offload to GPU, and deal with uneven batch sizes
             for i in range(self.p.batch_size):
-
-                if self.use_cuda:
-                    source_denoised = source_denoised.cpu()
-                    target = target.cpu()
-                    
-                # Monte Carlo check, have to slice buffers to compute PSNR
-                s = source_denoised[i].narrow(0, 0, 3) if self.is_mc else source_denoised[i]
-                t = target[i]
-                
-                psnr_meter.update(psnr(s, t).item())
+                source_denoised = source_denoised.cpu()
+                target = target.cpu()
+                psnr_meter.update(psnr(source_denoised[i], target[i]).item())
 
         valid_loss = loss_meter.avg
         valid_time = time_elapsed_since(valid_start)[0]
@@ -260,7 +252,7 @@ class Noise2Noise(object):
 
                 # Denoise image
                 source_denoised = self.model(source)
-                
+
                 loss = self.loss(source_denoised, target)
                 loss_meter.update(loss.item())
 
@@ -276,7 +268,7 @@ class Noise2Noise(object):
                     train_loss_meter.update(loss_meter.avg)
                     loss_meter.reset()
                     time_meter.reset()
-            
+
             # Epoch end, save and reset tracker
             self._on_epoch_end(stats, train_loss_meter.avg, epoch, epoch_start, valid_loader)
             train_loss_meter.reset()
@@ -287,19 +279,16 @@ class Noise2Noise(object):
 
 class HDRLoss(nn.Module):
     """High dynamic range loss."""
-    
+
     def __init__(self, eps=0.01):
         """Initializes loss with numerical stability epsilon."""
-        
+
         super(HDRLoss, self).__init__()
         self._eps = eps
 
 
-    def forward(self, input, target):
+    def forward(self, denoised, target):
         """Computes loss by unpacking render buffer."""
 
-        #denoised = reinhard_tonemap_tensor(input.narrow(1, 0, 3))
-        denoised = input.narrow(1, 0, 3)
         loss = ((denoised - target) ** 2) / (denoised + self._eps) ** 2
         return torch.mean(loss.view(-1))
-    
