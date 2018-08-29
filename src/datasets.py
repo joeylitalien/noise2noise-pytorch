@@ -7,6 +7,7 @@ import torchvision.transforms.functional as tvF
 from torch.utils.data import Dataset, DataLoader
 
 import os
+from sys import platform
 import numpy as np
 from random import choice
 from string import ascii_letters
@@ -25,7 +26,7 @@ def load_dataset(root_dir, redux, params, shuffled=False, single=False):
 
     # Create Torch dataset
     noise = (params.noise_type, params.noise_param)
-    
+
     # Instantiate appropriate dataset class
     if params.noise_type == 'mc':
         dataset = MonteCarloDataset(root_dir, redux, params.crop_size, params.tonemap)
@@ -43,7 +44,7 @@ def load_dataset(root_dir, redux, params, shuffled=False, single=False):
 class AbstractDataset(Dataset):
     """Abstract dataset class for Noise2Noise."""
 
-    def __init__(self, root_dir, redux=0, crop_size=128):
+    def __init__(self, root_dir, redux=0, crop_size=128, clean_targets=False):
         """Initializes abstract dataset."""
 
         super(AbstractDataset, self).__init__()
@@ -52,7 +53,7 @@ class AbstractDataset(Dataset):
         self.root_dir = root_dir
         self.redux = redux
         self.crop_size = crop_size
-
+        self.clean_targets = clean_targets
 
     def _random_crop(self, img_list):
         """Performs random square crop of fixed size.
@@ -63,7 +64,7 @@ class AbstractDataset(Dataset):
         cropped_imgs = []
         i = np.random.randint(0, h - self.crop_size + 1)
         j = np.random.randint(0, w - self.crop_size + 1)
-        
+
         for img in img_list:
             # Resize if dimensions are too small
             if min(w, h) < self.crop_size:
@@ -85,15 +86,15 @@ class AbstractDataset(Dataset):
         """Returns length of dataset."""
 
         return len(self.imgs)
-        
-        
+
+
 class NoisyDataset(AbstractDataset):
     """Class for injecting random noise into dataset."""
 
-    def __init__(self, root_dir, redux, crop_size, noise_dist=('gaussian', 50.), clean_targets=False):
+    def __init__(self, root_dir, redux, crop_size, clean_targets=False, noise_dist=('gaussian', 50.)):
         """Initializes noisy image dataset."""
 
-        super(NoisyDataset, self).__init__(root_dir, redux, crop_size)
+        super(NoisyDataset, self).__init__(root_dir, redux, crop_size, clean_targets)
 
         self.imgs = os.listdir(root_dir)
         if redux:
@@ -102,9 +103,6 @@ class NoisyDataset(AbstractDataset):
         # Noise parameters (max std for Gaussian, lambda for Poisson, nb of artifacts for text)
         self.noise_type = noise_dist[0]
         self.noise_param = noise_dist[1]
-
-        # Use clean targets
-        self.clean_targets = clean_targets
 
 
     def _add_noise(self, img):
@@ -132,21 +130,43 @@ class NoisyDataset(AbstractDataset):
     def _add_text_overlay(self, img):
         """Adds text overlay to images."""
 
+        assert self.noise_param < 1, 'Text parameter is an occupancy probability'
+
         w, h = img.size
         c = len(img.getbands())
 
         # Choose font and get ready to draw
-        font = ImageFont.truetype('Times New Roman.ttf', 24)
+        if platform == 'linux':
+            serif = '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'
+        else:
+            serif = 'Times New Roman.ttf'
         text_img = img.copy()
-        draw = ImageDraw.Draw(text_img)
+        text_draw = ImageDraw.Draw(text_img)
+
+        # Text binary mask to compute occupancy efficiently
+        w, h = img.size
+        mask_img = Image.new('1', (w, h))
+        mask_draw = ImageDraw.Draw(mask_img)
+
+        # Random occupancy in range [0, p]
+        max_occupancy = np.random.uniform(0, self.noise_param)
+        def get_occupancy(x):
+            y = np.array(x, dtype=np.uint8)
+            return np.sum(y) / y.size
 
         # Add text overlay by choosing random text, length, color and position
-        for i in range(int(self.noise_param)):
-            length = np.random.randint(10, 30)
-            text = ''.join(choice(ascii_letters) for i in range(length))
+        while 1:
+            font = ImageFont.truetype(serif, np.random.randint(16, 21))
+            length = np.random.randint(10, 25)
+            chars = ''.join(choice(ascii_letters) for i in range(length))
             color = tuple(np.random.randint(0, 255, c))
             pos = (np.random.randint(0, w), np.random.randint(0, h))
-            draw.text(pos, text, color, font=font)
+            text_draw.text(pos, chars, color, font=font)
+
+            # Update mask and check occupancy
+            mask_draw.text(pos, chars, 1, font=font)
+            if get_occupancy(mask_img) > max_occupancy:
+                break
 
         return text_img
 
@@ -183,15 +203,15 @@ class NoisyDataset(AbstractDataset):
             target = tvF.to_tensor(self._corrupt(img))
 
         return source, target
-        
-        
-class MonteCarloDataset(AbstractDataset):
-    """Class for dealing with HDR Monte Carlo rendered images."""
 
-    def __init__(self, root_dir, redux, crop_size, tone_mapping='source'):
+
+class MonteCarloDataset(AbstractDataset):
+    """Class for dealing with Monte Carlo rendered images."""
+
+    def __init__(self, root_dir, redux, crop_size, clean_targets=False, tone_mapping='source'):
         """Initializes Monte Carlo image dataset."""
 
-        super(MonteCarloDataset, self).__init__(root_dir, redux, crop_size)
+        super(MonteCarloDataset, self).__init__(root_dir, redux, crop_size, clean_targets)
 
         # Rendered images directories
         self.root_dir = root_dir
@@ -205,50 +225,39 @@ class MonteCarloDataset(AbstractDataset):
             self.normals = self.normals[:redux]
 
         # Tone mapping (none, source, target, or both)
+        # TODO: Fix this (either use it, or find another way)
         self.tone_mapping = tone_mapping
 
-
-    def _load_hdr(self, img_path, tonemap):
-        """Converts OpenEXR image to PIL format."""
-
-        # Read OpenEXR file
-        if not OpenEXR.isOpenExrFile(img_path):
-            raise ValueError('HDR images must be in OpenEXR (.exr) format')
-        src = OpenEXR.InputFile(img_path)
-        pixel_type = Imath.PixelType(Imath.PixelType.FLOAT)
-        dw = src.header()['dataWindow']
-        size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
-
-        # Load as float and tonemap
-        rgb = [np.frombuffer(src.channel(c, pixel_type), dtype=np.float32) for c in 'RGB']
-        if tonemap:
-            rgb = reinhard_tonemap(rgb)
-        rgb8 = [Image.frombytes('F', size, c.tostring()).convert('L') for c in rgb]
-        
-        return Image.merge('RGB', rgb8)
+        # Read reference image (converged target)
+        ref_path = os.path.join(root_dir, 'reference.png')
+        self.reference = Image.open(ref_path).convert('RGB')
 
 
     def __getitem__(self, index):
         """Retrieves image from folder and corrupts it."""
 
-        # Select random Monte Carlo render for target
-        indices = list(range(len(self.imgs)))
-        indices.remove(index)
-        target_index = choice(indices)
+        # Use converged image, if requested
+        if self.clean_targets:
+            target = self.reference
 
-        # Apply tone mapping
+        # Select random Monte Carlo render for target
+        else:
+            indices = list(range(len(self.imgs)))
+            indices.remove(index)
+            target_index = choice(indices)
+            target_path = os.path.join(self.root_dir, 'render', self.imgs[target_index])
+            target = Image.open(target_path).convert('RGB')
+
+        # Get actual rendering
         render_path = os.path.join(self.root_dir, 'render', self.imgs[index])
-        target_path = os.path.join(self.root_dir, 'render', self.imgs[target_index])
         render = Image.open(render_path).convert('RGB')
-        target = Image.open(target_path).convert('RGB') 
 
         # Get other buffers
-        #render = tvF.to_tensor(render)
         albedo_path = os.path.join(self.root_dir, 'albedo', self.albedos[index])
         albedo = Image.open(albedo_path).convert('RGB')
         normal_path =  os.path.join(self.root_dir, 'normal', self.normals[index])
         normal = Image.open(normal_path).convert('RGB')
-        
+
         # Crop
         if self.crop_size != 0:
             buffers = [render, albedo, normal, target]
@@ -260,45 +269,9 @@ class MonteCarloDataset(AbstractDataset):
 
         return source, target
 
-    """
-    def __getitem__(self, index):
 
-        # Select random Monte Carlo render for target
-        indices = list(range(len(self.imgs)))
-        indices.remove(index)
-        target_index = choice(indices)
-
-        # Apply tone mapping
-        render_path = os.path.join(self.root_dir, 'render', self.imgs[index])
-        target_path = os.path.join(self.root_dir, 'render', self.imgs[target_index])
-        
-        # Apply tone mapping to desired images
-        source_tonemap = self.tone_mapping in ['source', 'both']
-        target_tonemap = self.tone_mapping in ['target', 'both']
-        render = self._load_hdr(render_path, tonemap=source_tonemap)
-        target = self._load_hdr(target_path, tonemap=target_tonemap)   
-
-        # Get other buffers
-        #render = tvF.to_tensor(render)
-        albedo_path = os.path.join(self.root_dir, 'albedo', self.albedos[index])
-        albedo = self._load_hdr(albedo_path, tonemap=source_tonemap)
-        normal_path =  os.path.join(self.root_dir, 'normal', self.normals[index])
-        normal = self._load_hdr(normal_path, tonemap=source_tonemap)
-        
-        # Crop
-        if self.crop_size != 0:
-            buffers = [render, albedo, normal, target]
-            buffers = [tvF.to_tensor(b) for b in self._random_crop(buffers)]
-
-        # Stack buffers to create input volume
-        source = torch.cat(buffers[:3], dim=0)
-        target = buffers[3]
-
-        return source, target
-    """
-        
-        
 if __name__ == '__main__':
+    """
     mc = MonteCarloDataset('../data/tonemapped_train', 0, 128, 'both')
     s, t = mc[0]
     t = tvF.to_pil_image(t)
@@ -309,3 +282,4 @@ if __name__ == '__main__':
     s1.save('albedo.png')
     s2.save('normal.png')
     t.save('target.png')
+    """
