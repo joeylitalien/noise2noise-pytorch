@@ -55,19 +55,17 @@ You can also download the [dataset](https://benedikt-bitterli.me/nfor/denoising-
 
 See `python3 train.py --h` for list of optional arguments, or `examples/train.sh` for an example.
 
-By default, the model train with noisy targets. To train with clean targets, use `--clean-targets`. The program assumes that the directory passed to `--data` contains subdirectories `train` and `valid`. To train and validate on smaller datasets, use the `--train-size` and `--valid-size` options. To plot stats as the model trains, use `--plot-stats`; these are saved alongside checkpoints.
+By default, the model train with noisy targets. To train with clean targets, use `--clean-targets`. To train and validate on smaller datasets, use the `--train-size` and `--valid-size` options. To plot stats as the model trains, use `--plot-stats`; these are saved alongside checkpoints. By default CUDA is not enabled: use the `--cuda` option if you have a GPU that supports it.
 
 ### Gaussian noise
 The noise parameter is the maximum standard deviation σ.
 ```
 python3 train.py \
+  --train-dir ../data/train --train-size 1000 \
+  --valid-dir ../data/valid --valid-size 200 \
   --ckpt-save-path ../ckpts \
-  --report-interval 25 \
-  --data ../data --train-size 500 --valid-size 100 \
-  --learning-rate 0.001 \
-  --adam 0.9, 0.99, 1e-8 \
+  --nb-epochs 10 \
   --batch-size 4 \
-  --nb-epochs 100 \
   --loss l2 \
   --noise-type gaussian \
   --noise-param 50 \
@@ -82,7 +80,8 @@ The noise parameter is the Poisson parameter λ.
 python3 train.py
   --loss l2 \
   --noise-type poisson \
-  --noise-param 50
+  --noise-param 50 \
+  --cuda
 ```
 
 ### Text overlay
@@ -91,7 +90,8 @@ The noise parameter is the number of text artifacts overlayed.
 python3 train.py \
   --loss l1 \
   --noise-type text \
-  --noise-param 80
+  --noise-param 80 \
+  --cuda
 ```
 
 ### Monte Carlo noise
@@ -181,10 +181,10 @@ python3 render.py \
   --scene-path ../data/scenes/car/scene.json \
   --spp 4 \
   --nb-renders 10 \
-  --output-dir ../data/train
+  --output-dir ../data/mc/train
 ```
 
-You can also specify the path to Tungsten if you have it installed somewhere else with the `--tungsten` argument. The default assumes it's in the environment path already.
+You can also specify the path to Tungsten if you have it installed somewhere else with the `--tungsten` argument. The default assumes it's in the environment path already. Moreover, images are tonemapped using [Reinhard](https://www.cs.utah.edu/~reinhard/cdrom/) by default; to save images as HDR images (OpenEXR format), use the `--hdr` option.
 
 See `python3 render.py -h` for more info, or run `render.sh` for an example.
 
@@ -204,17 +204,21 @@ python3 train.py \
 
 
 ## To do list
-- [x] Test Gaussian noise and text overlay thoroughly so they work as intended
+- [x] Test Gaussian noise
 - [x] Track validation loss and PSNR over time to plot
 - [x] Implement Poisson noise with L2 loss
+- [x] Added support for maximum occupancy for text corruption
 - [ ] Train on a half-decent GPU and add results
+  - [x] Gaussian noise
+  - [ ] Poisson noise
+  - [ ] Text overlay
 - [ ] Move all print statements to a `logging` solution
 - [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
 - [ ] Monte Carlo rendering noise
   - [x] Generate MC renders with albedo and normal buffers using Tungsten
-  - [ ] Implement HDR-specific functions (e.g. Reinhard tone mapping)
-  - [ ] Pass to U-Net
-- [ ] Fix RedNet baseline skip connections (low priority)
+  - [x] Implement HDR-specific functions (e.g. Reinhard tone mapping)
+  - [x] Pass to U-Net
+  - [ ] Fix some important bugs...
 
 ## References
 * Jaakko Lehtinen, Jacob Munkberg, Jon Hasselgren, Samuli Laine, Tero Karras, Miika Aittala,and Timo Aila. *Noise2Noise: Learning Image Restoration without Clean Data*. Proceedings of the 35th International Conference on Machine Learning, 2018.
