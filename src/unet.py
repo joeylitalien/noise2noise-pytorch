@@ -8,7 +8,7 @@ import torch.nn as nn
 class UNet(nn.Module):
     """Custom U-Net architecture for Noise2Noise (see Appendix, Table 2)."""
 
-    def __init__(self, in_channels=3):
+    def __init__(self, in_channels=3, out_channels=3):
         """Initializes U-Net."""
 
         super(UNet, self).__init__()
@@ -58,7 +58,7 @@ class UNet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(64, 32, 3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(32, 3, 3, stride=1, padding=1),
+            nn.Conv2d(32, out_channels, 3, stride=1, padding=1),
             nn.LeakyReLU(0.1))
 
         # Initialize weights
