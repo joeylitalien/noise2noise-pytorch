@@ -52,9 +52,7 @@ def show_on_report(batch_idx, num_batches, loss, elapsed):
 
     clear_line()
     dec = int(np.ceil(np.log10(num_batches)))
-    print('Batch {:>{dec}d} / {:d} | Avg loss: {:>1.5f} | Avg train time / batch: {:d} ms'.format(batch_idx + 1,
-                                                                                        num_batches, loss, int(elapsed),
-                                                                                        dec=dec))
+    print('Batch {:>{dec}d} / {:d} | Avg loss: {:>1.5f} | Avg train time / batch: {:d} ms'.format(batch_idx + 1, num_batches, loss, int(elapsed), dec=dec))
 
 
 def plot_per_epoch(ckpt_dir, title, measurements, y_label):
@@ -96,6 +94,7 @@ def load_hdr(self, img_path):
 def reinhard_tonemap(tensor):
     """Reinhard et al. (2002) tone mapping."""
 
+    tensor[tensor < 0] = 0
     return torch.pow(tensor / (1 + tensor), 1 / 2.2)
 
 
@@ -123,23 +122,13 @@ def create_montage(img_name, save_path, source_t, denoised_t, clean_t, show):
     source_t = source_t.cpu()
     denoised_t = denoised_t.cpu()
     clean_t = clean_t.cpu()
-
-    # Convert to PIL images (tonemap images first if specified)
-    # if tonemap:
-    #     noisy = tvF.to_pil_image(reinhard_tonemap_tensor(noisy_t))
-    #     denoised = tvF.to_pil_image(reinhard_tonemap_tensor(denoised_t))
-    #     clean = tvF.to_pil_image(reinhard_tonemap_tensor(clean_t))
-    # else:
-    #     noisy = tvF.to_pil_image(noisy_t)
-    #     denoised = tvF.to_pil_image(torch.clamp(denoised_t, 0, 1))
-    #     clean = tvF.to_pil_image(clean_t)
-
+    
     source = tvF.to_pil_image(source_t.narrow(0, 0, 3))
     denoised = tvF.to_pil_image(torch.clamp(denoised_t, 0, 1))
     clean = tvF.to_pil_image(clean_t)
 
     # Build image montage
-    psnr_vals = [psnr(source_t, clean_t), psnr(source_t, clean_t)]
+    psnr_vals = [psnr(source_t, clean_t), psnr(denoised_t, clean_t)]
     titles = ['Input: {:.2f} dB'.format(psnr_vals[0]),
               'Denoised: {:.2f} dB'.format(psnr_vals[1]),
               'Ground truth']
