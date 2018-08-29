@@ -239,13 +239,8 @@ class MonteCarloDataset(AbstractDataset):
         # Use converged image, if requested
         if self.clean_targets:
             target = self.reference
-
-        # Select random Monte Carlo render for target
         else:
-            indices = list(range(len(self.imgs)))
-            indices.remove(index)
-            target_index = choice(indices)
-            target_path = os.path.join(self.root_dir, 'render', self.imgs[target_index])
+            target_path = os.path.join(self.root_dir, 'target', self.imgs[index])
             target = Image.open(target_path).convert('RGB')
 
         # Get actual rendering
