@@ -16,7 +16,7 @@ def config_scene(scene_path, spp, hdr):
         raise ValueError('Scene file must be in JSON format')
     with open(scene_path, 'r') as fp:
         scene = json.load(fp)
-    
+
     # Save either in low or high dynamic range
     if hdr:
         scene['renderer']['hdr_output_file'] = 'render.exr'
@@ -79,6 +79,13 @@ def batch_render(scene_path, params):
         for mv in mv_imgs:
             sp.call(mv.split())
 
+    # Move reference images
+    scene_root = os.path.dirname(scene_path)
+    mv_ref_ldr = f'cp {scene_root}/TungstenRender.exr {params.output_dir}/reference.png'
+    mv_ref_hdr = f'cp {scene_root}/TungstenRender.png {params.output_dir}/reference.exr'
+    sp.call(mv_ref_ldr.split())
+    sp.call(mv_ref_hdr.split())
+
 
 def parse_args():
     """Command-line argument parser for generating scenes."""
@@ -91,7 +98,7 @@ def parse_args():
     parser.add_argument('-d', '--scene-path', help='scene root path', type=str)
     parser.add_argument('-s', '--spp', help='sample per pixel', default=16, type=int)
     parser.add_argument('-n', '--nb-renders', help='number of renders', default=10, type=int)
-    parser.add_argument('-h', '--hdr', help='save as hdr images', action='store_true')
+    parser.add_argument('--hdr', help='save as hdr images', action='store_true')
     parser.add_argument('-o', '--output-dir', help='output directory', default='../../data/renders', type=str)
 
     return parser.parse_args()
