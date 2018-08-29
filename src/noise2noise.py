@@ -79,14 +79,17 @@ class Noise2Noise(object):
         # Create directory for model checkpoints, if nonexistent
         if first:
             if self.p.clean_targets:
-                timestamp = f'{datetime.now():{self.p.noise_type}-clean-%H%M}'
+                ckpt_dir_name = f'{datetime.now():{self.p.noise_type}-clean-%H%M}'
             else:
-                timestamp = f'{datetime.now():{self.p.noise_type}-%H%M}'
+                ckpt_dir_name = f'{datetime.now():{self.p.noise_type}-%H%M}'
 
-            self.ckpt_dir = os.path.join(self.p.ckpt_save_path, timestamp)
+            if self.p.ckpt_overwrite:
+                ckpt_dir_name = self.p.noise_type
+            self.ckpt_dir = os.path.join(self.p.ckpt_save_path, ckpt_dir_name)
+            if not self.p.ckpt_overwrite:
+                os.mkdir(self.ckpt_dir)
             if not os.path.isdir(self.p.ckpt_save_path):
                 os.mkdir(self.p.ckpt_save_path)
-            os.mkdir(self.ckpt_dir)
 
         # Save checkpoint dictionary
         if self.p.ckpt_overwrite:
@@ -133,7 +136,7 @@ class Noise2Noise(object):
 
         # Plot stats
         if self.p.plot_stats:
-            loss_str = f'{self.p.loss} loss'.capitalize()
+            loss_str = f'{self.p.loss.upper()} loss'
             plot_per_epoch(self.ckpt_dir, 'Valid loss', stats['valid_loss'], loss_str)
             plot_per_epoch(self.ckpt_dir, 'Valid PSNR', stats['valid_psnr'], 'PSNR (dB)')
 
@@ -165,7 +168,10 @@ class Noise2Noise(object):
 
             # Denoise
             denoised_img = self.model(source).detach()
+            #denoised_img = reinhard_tonemap(denoised_img)
             denoised_imgs.append(denoised_img)
+            
+            #print(denoised_img)
 
         # Squeeze tensors
         source_imgs = [t.squeeze(0) for t in source_imgs]
@@ -197,7 +203,7 @@ class Noise2Noise(object):
             source_denoised = self.model(source)
 
             # Update loss
-            loss = self.loss(source_denoised, reinhard_tonemap(target))
+            loss = self.loss(source_denoised, target)
             loss_meter.update(loss.item())
 
             # Compute PSRN
