@@ -5,7 +5,7 @@ python3 ../train.py \
   --nb-epochs 100 \
   --loss l1 \
   --noise-type text \
-  --noise-param 50 \
+  --noise-param 0.5 \
   --crop-size 128 \
   --plot-stats \
   --cuda

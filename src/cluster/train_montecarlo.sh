@@ -1,9 +1,10 @@
 python3 ../train.py \
-  --train-dir ../../data/tonemapped_train --train-size 20 \
-  --valid-dir ../../data/tonemapped_valid --valid-size 4 \
+  --train-dir ../../data/train_ldr --train-size 16 \
+  --valid-dir ../../data/valid_ldr --valid-size 4 \
   --ckpt-save-path ../../ckpts \
-  --report-interval 5 \
-  --nb-epochs 10 \
+  --ckpt-overwrite \
+  --report-interval 4 \
+  --nb-epochs 50 \
   --batch-size 4 \
   --loss hdr \
   --noise-type mc \

@@ -2,6 +2,7 @@ python3 ../train.py \
   --train-dir ../../data/train --train-size 100 \
   --valid-dir ../../data/valid --valid-size 20 \
   --ckpt-save-path ../../ckpts \
+  --ckpt-overwrite \
   --report-interval 5 \
   --nb-epochs 10 \
   --loss l2 \
