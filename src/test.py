@@ -40,6 +40,8 @@ if __name__ == '__main__':
     n2n = Noise2Noise(params, trainable=False)
     params.redux = False
     params.clean_targets = True
+    if params.noise_type == 'test':
+        params.noise_param = 0.25
     test_loader = load_dataset(params.data, 0, params, shuffled=False, single=True)
     n2n.load_model(params.load_ckpt)
     n2n.test(test_loader, show=params.show_output)
