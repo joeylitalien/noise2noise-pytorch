@@ -61,6 +61,8 @@ class AbstractDataset(Dataset):
         """
 
         w, h = img_list[0].size
+        assert w >= self.crop_size and h >= self.crop_size, \
+            f'Error: Crop size: {self.crop_size}, Image size: ({w}, {h})'
         cropped_imgs = []
         i = np.random.randint(0, h - self.crop_size + 1)
         j = np.random.randint(0, w - self.crop_size + 1)
@@ -199,9 +201,7 @@ class NoisyDataset(AbstractDataset):
             img = self._random_crop([img])[0]
 
         # Corrupt source image
-        img.show()
         tmp = self._corrupt(img)
-        tmp.show()
         source = tvF.to_tensor(self._corrupt(img))
 
         # Corrupt target image, but not when clean targets are requested
