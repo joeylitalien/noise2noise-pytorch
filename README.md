@@ -1,6 +1,6 @@
 # Noise2Noise: Learning Image Restoration without Clean Data
 
-This is a *weekend (partial and unfinished)* PyTorch implementation of [Noise2Noise](https://arxiv.org/abs/1803.04189) (Lehtinen et al. 2018). As such, it is still very much a work-in-progress.
+This is a PyTorch implementation of [Noise2Noise](https://arxiv.org/abs/1803.04189) (Lehtinen et al. 2018).
 
 ## Dependencies
 
@@ -19,8 +19,6 @@ pip3 install --user -r requirements.txt
 This code was tested on Python 3.6.5 on macOS High Sierra (10.13.4) and Ubuntu 16.04. It will fail with Python 2.7.x due to usage of 3.6-specific functions. Note that training and testing will also fail on Windows out of the box due to differences in the path resolvers (`os.path`).
 
 ## Dataset
-
-### Image dataset
 
 The authors use [ImageNet](http://image-net.org/download), but any dataset will do. [COCO 2017](http://cocodataset.org/#download) has a small validation set (1 GB) which can be nicely split into train/valid for easier training. For instance, to obtain a 4200/800 train/valid split you can do:
 ```
@@ -44,12 +42,6 @@ unzip -j val2017.zip -d valid
 ```
 
 Add your favorite images to the `data/test` folder. Only a handful will do to visually inspect the denoiser performance.
-
-### Monte Carlo rendering dataset
-
-See [below to create your own](#generating-renders), or download the [bathroom scene dataset](https://mcgill-my.sharepoint.com/:u:/g/personal/joey_litalien_mail_mcgill_ca/ESrJBzcYK0VDiapi_-NiFXQBk1GkMUqJw5zeJVzQ0VxJjg?e=ZhEmCv) (48/8/4 path traced renders @ 8 spp with albedo and normal buffers).
-
-You can also download the [dataset](https://benedikt-bitterli.me/nfor/denoising-data.zip) used by [Bitterli et al. (2016)](https://benedikt-bitterli.me/nfor/), which is open source. Note that you will need to manually organize its content into render/albedo/normal subdirectories for this dataset to work with this implementation.
 
 ## Training
 
@@ -90,13 +82,13 @@ The noise parameter is the approximate probability *p* that a pixel is covered b
 python3 train.py \
   --loss l1 \
   --noise-type text \
-  --noise-param 80 \
+  --noise-param 0.5 \
   --cuda
 ```
 
-### Monte Carlo noise
+### Monte Carlo rendering noise
 
-See [instructions below](#monte-carlo-rendering).
+See [other read-me file](MonteCarlo.md).
 
 ## Testing
 
@@ -169,70 +161,6 @@ Model was only trained for 30 epochs with a train/valid split of 1000/200 on a G
   </tr>  
 </table>
 
-## Monte Carlo rendering
-
-### Downloading and building Tungsten
-
-You can use your favourite Monte Carlo physically-based renderer to generate noisy images, but you need to be able to extract albedo and normal buffers. As such, we use [Tungsten](https://github.com/tunabrain/tungsten) by [Benedikt Bitterli](https://benedikt-bitterli.me) since it provides an easy way to retrieve these buffers. Assuming you have an up-to-date version of [CMake](https://cmake.org/download/) installed with `gcc`, run:
-
-```
-git clone https://github.com/tunabrain/tungsten.git
-./setup_builds.sh
-cd build/release
-make
-```
-
-Add Tungsten to your path so you don't have to specify its location (use &#96; quotations and `.profile` on macOS):
-```
-echo 'export PATH="<tungsten-release-dir>":$PATH' >> ~/.bashrc
-source ~/.bashrc
-```
-
-Run `tungsten -v` to see if the path is correctly set. If you see Tungsten's version, you are good to go.
-
-### Downloading scene files
-
-The original paper use 860 architectural images; we use a single scene for testing purposes.
-
-```
-cd data && mkdir scenes
-wget https://benedikt-bitterli.me/resources/tungsten/bathroom.zip
-unzip bathroom.zip -d scenes
-rm *.zip
-```
-
-### Generating renders
-To launch a series of renders to build a training set, do:
-
-```
-python3 render.py \
-  --scene-path ../data/scenes/car/scene.json \
-  --spp 8 \
-  --nb-renders 48 \
-  --output-dir ../data/train_ldr \
-  --hdr-targets
-```
-
-You can also specify the path to Tungsten if you have it installed somewhere else with the `--tungsten` argument. The default assumes it's in the environment path already. Moreover, images are tonemapped using [Reinhard](https://www.cs.utah.edu/~reinhard/cdrom/) by default; to save images as HDR images (OpenEXR format), use the `--hdr-<output-type>` options.
-
-A specific width and height can be given with `--resolution <width> <height>` but you will need to re-render a ground truth image if the width/height ratio is not preserved. References images are automatically resized otherwise.
-
-See `python3 render.py -h` for more info, or run `render.sh` for an example.
-
-### Training (not implemented yet)
-```
-python3 train.py \
-  --ckpt-save-path ../ckpts \
-  --data ../data --train-size 10 --valid-size 1 \
-  --nb-epochs 1000 \
-  --learning-rate 0.001 \
-  --loss hdr \
-  --noise-type mc \
-  --crop-size 64 \
-  --plot-stats
-```
-
-
 ## To do list
 - [x] Test Gaussian noise
 - [x] Track validation loss and PSNR over time to plot
@@ -242,24 +170,14 @@ python3 train.py \
   - [x] Gaussian noise
   - [x] Text overlay
   - [ ] Poisson noise: unclear how the paper deals with this since Poisson is data-dependent
-- [ ] Monte Carlo rendering noise
-  - [x] Generate MC renders with albedo and normal buffers using Tungsten
-  - [x] Implement HDR-specific functions (e.g. Reinhard tone mapping)
-  - [x] Pass to U-Net
-  - [ ] Fix some important bugs...
 - [ ] Move all print statements to a `logging` solution
 - [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
 
 ## References
 * Jaakko Lehtinen, Jacob Munkberg, Jon Hasselgren, Samuli Laine, Tero Karras, Miika Aittala,and Timo Aila. [*Noise2Noise: Learning Image Restoration without Clean Data*](https://research.nvidia.com/publication/2018-07_Noise2Noise%3A-Learning-Image). Proceedings of the 35th International Conference on Machine Learning, 2018.
 
-* Tsung-Yi Lin, Michael Maire, Serge Belongie, Lubomir Bourdev, Ross Girshick, James Hays, Pietro Perona, Deva Ramanan, C. Lawrence Zitnick, and Piotr Dollár. [*Microsoft COCO: Common Objects in Context*](https://arxiv.org/abs/1405.0312). 	arXiv:1405.0312, 2014.
-
-* Benedikt Bitterli, Fabrice Rousselle, Bochang Moon, José A. Iglesias-Guitián, David Adler, Kenny Mitchell, Wojciech Jarosz, and Jan Novák. [*Nonlinearly Weighted First-order Regression
-for Denoising Monte Carlo Renderings*](https://benedikt-bitterli.me/nfor/). Computer Graphics Forum (Proceedings of EGSR 2016), 2016.
-
-* Benedikt Bitterli. [*Tungsten Renderer*](https://github.com/tunabrain/tungsten). GitHub repository: `tunabrain/tungsten`, 2018.
+* Tsung-Yi Lin, Michael Maire, Serge Belongie, Lubomir Bourdev, Ross Girshick, James Hays, Pietro Perona, Deva Ramanan, C. Lawrence Zitnick, and Piotr Dollár. [*Microsoft COCO: Common Objects in Context*](https://arxiv.org/abs/1405.0312). arXiv:1405.0312, 2014.
 
 ## Acknowledgments
 
-I would like to acknowledge [Yusuke Uchida](https://yu4u.github.io/) for his [Keras implementation of Noise2Noise](https://github.com/yu4u/noise2noise). Although Keras and PyTorch are very different frameworks, parts of his code did help me in completing this implementation. Also major thanks to Benedikt Bitterli for releasing his work publicly.
+I would like to acknowledge [Yusuke Uchida](https://yu4u.github.io/) for his [Keras implementation of Noise2Noise](https://github.com/yu4u/noise2noise). Although Keras and PyTorch are very different frameworks, parts of his code did help me in completing this implementation.
