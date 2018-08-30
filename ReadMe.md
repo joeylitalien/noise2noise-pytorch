@@ -117,9 +117,9 @@ Model was only trained for 1000 epochs with a train/valid split of 2000/400 on a
     <th colspan=9>Gaussian noise (σ = 25)</td>
   </tr>
   <tr align="center">
-    <td colspan=2>Noisy input (21.75 dB)</td>
-    <td colspan=2>Denoised (31.73 dB)</td>
-    <td colspan=2>Clean targets (31.70 dB)</td>
+    <td colspan=2>Noisy input (20.36 dB)</td>
+    <td colspan=2>Denoised (31.22 dB)</td>
+    <td colspan=2>Clean targets (32.23 dB)</td>
     <td colspan=2>Ground truth</td>
   </tr>
   <tr align="center">
@@ -129,9 +129,9 @@ Model was only trained for 1000 epochs with a train/valid split of 2000/400 on a
     <td colspan=2><img src="figures/lenna.png"></td>
   </tr>  
   <tr align="center">
-    <td colspan=2>Noisy input (27.15 dB)</td>
-    <td colspan=2>Denoised (35.97 dB)</td>
-    <td colspan=2>Clean targets (35.94 dB)</td>
+    <td colspan=2>Noisy input (20.34 dB)</td>
+    <td colspan=2>Denoised (32.68 dB)</td>
+    <td colspan=2>Clean targets (32.49 dB)</td>
     <td colspan=2>Ground truth</td>
   </tr>
   <tr align="center">

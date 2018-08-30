@@ -131,7 +131,10 @@ class NoisyDataset(AbstractDataset):
             
         # Normal distribution (default)
         else:
-            std = np.random.uniform(0, self.noise_param)
+            if self.seed:
+                std = self.noise_param
+            else:
+                std = np.random.uniform(0, self.noise_param)
             noise = np.random.normal(0, std, (h, w, c))
 
             # Add noise and clip
