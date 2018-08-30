@@ -32,10 +32,10 @@ def load_dataset(root_dir, redux, params, shuffled=False, single=False):
     # Instantiate appropriate dataset class
     if params.noise_type == 'mc':
         dataset = MonteCarloDataset(root_dir, redux, params.crop_size,
-                    clean_targets=params.clean_targets)
+            clean_targets=params.clean_targets)
     else:
-        dataset = NoisyDataset(root_dir, redux, params.crop_size, noise_dist=noise,
-                    clean_targets=params.clean_targets)
+        dataset = NoisyDataset(root_dir, redux, params.crop_size, 
+            clean_targets=params.clean_targets, noise_dist=noise, seed=params.seed)
 
     # Use batch size of 1, if requested (e.g. test set)
     if single:
@@ -96,7 +96,8 @@ class AbstractDataset(Dataset):
 class NoisyDataset(AbstractDataset):
     """Class for injecting random noise into dataset."""
 
-    def __init__(self, root_dir, redux, crop_size, clean_targets=False, noise_dist=('gaussian', 50.)):
+    def __init__(self, root_dir, redux, crop_size, clean_targets=False, 
+        noise_dist=('gaussian', 50.), seed=None):
         """Initializes noisy image dataset."""
 
         super(NoisyDataset, self).__init__(root_dir, redux, crop_size, clean_targets)
@@ -108,6 +109,9 @@ class NoisyDataset(AbstractDataset):
         # Noise parameters (max std for Gaussian, lambda for Poisson, nb of artifacts for text)
         self.noise_type = noise_dist[0]
         self.noise_param = noise_dist[1]
+        self.seed = seed
+        if self.seed:
+            np.random.seed(self.seed)
 
 
     def _add_noise(self, img):
@@ -285,9 +289,3 @@ class MonteCarloDataset(AbstractDataset):
         target = buffers[3]
 
         return source, target
-
-
-if __name__ == '__main__':
-
-    mc = MonteCarloDataset('../data/mc/train', 0, 128, clean_targets=True)
-    mc[0]
