@@ -4,8 +4,10 @@
 import torch
 import torch.nn as nn
 from torch.optim import Adam, lr_scheduler
+
 from unet import UNet
 from utils import *
+
 import os
 import json
 
@@ -82,11 +84,11 @@ class Noise2Noise(object):
                 ckpt_dir_name = f'{datetime.now():{self.p.noise_type}-clean-%H%M}'
             else:
                 ckpt_dir_name = f'{datetime.now():{self.p.noise_type}-%H%M}'
-
             if self.p.ckpt_overwrite:
                 ckpt_dir_name = self.p.noise_type
+                
             self.ckpt_dir = os.path.join(self.p.ckpt_save_path, ckpt_dir_name)
-            if not self.p.ckpt_overwrite:
+            if not os.path.isdir(self.ckpt_dir):
                 os.mkdir(self.ckpt_dir)
             if not os.path.isdir(self.p.ckpt_save_path):
                 os.mkdir(self.p.ckpt_save_path)
@@ -151,7 +153,8 @@ class Noise2Noise(object):
         clean_imgs = []
 
         # Create directory for denoised images
-        save_path = os.path.join(self.p.data, 'denoised')
+        denoised_dir = os.path.dirname(self.p.data)
+        save_path = os.path.join(denoised_dir, 'denoised')
         if not os.path.isdir(save_path):
             os.mkdir(save_path)
 
@@ -168,10 +171,7 @@ class Noise2Noise(object):
 
             # Denoise
             denoised_img = self.model(source).detach()
-            #denoised_img = reinhard_tonemap(denoised_img)
             denoised_imgs.append(denoised_img)
-            
-            #print(denoised_img)
 
         # Squeeze tensors
         source_imgs = [t.squeeze(0) for t in source_imgs]
@@ -182,7 +182,7 @@ class Noise2Noise(object):
         print('Saving images and montages to: {}'.format(save_path))
         for i in range(len(source_imgs)):
             img_name = test_loader.dataset.imgs[i]
-            create_montage(img_name, save_path, source_imgs[i], denoised_imgs[i], clean_imgs[i], show)
+            create_montage(img_name, self.p.noise_type, save_path, source_imgs[i], denoised_imgs[i], clean_imgs[i], show)
 
 
     def eval(self, valid_loader):
