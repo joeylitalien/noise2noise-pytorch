@@ -6,6 +6,8 @@ import torch.nn.functional as F
 import torchvision.transforms.functional as tvF
 from torch.utils.data import Dataset, DataLoader
 
+from utils import load_hdr_as_tensor
+
 import os
 from sys import platform
 import numpy as np
@@ -29,7 +31,8 @@ def load_dataset(root_dir, redux, params, shuffled=False, single=False):
 
     # Instantiate appropriate dataset class
     if params.noise_type == 'mc':
-        dataset = MonteCarloDataset(root_dir, redux, params.crop_size, params.tonemap)
+        dataset = MonteCarloDataset(root_dir, redux, params.crop_size,
+                    clean_targets=params.clean_targets)
     else:
         dataset = NoisyDataset(root_dir, redux, params.crop_size, noise_dist=noise,
                     clean_targets=params.clean_targets)
@@ -216,7 +219,8 @@ class NoisyDataset(AbstractDataset):
 class MonteCarloDataset(AbstractDataset):
     """Class for dealing with Monte Carlo rendered images."""
 
-    def __init__(self, root_dir, redux, crop_size, clean_targets=False, tone_mapping='source'):
+    def __init__(self, root_dir, redux, crop_size, 
+        hdr_buffers=False, hdr_targets=True, clean_targets=False):
         """Initializes Monte Carlo image dataset."""
 
         super(MonteCarloDataset, self).__init__(root_dir, redux, crop_size, clean_targets)
@@ -232,13 +236,13 @@ class MonteCarloDataset(AbstractDataset):
             self.albedos = self.albedos[:redux]
             self.normals = self.normals[:redux]
 
-        # Tone mapping (none, source, target, or both)
-        # TODO: Fix this (either use it, or find another way)
-        self.tone_mapping = tone_mapping
-
         # Read reference image (converged target)
         ref_path = os.path.join(root_dir, 'reference.png')
         self.reference = Image.open(ref_path).convert('RGB')
+        
+        # High dynamic range images
+        self.hdr_buffers = hdr_buffers
+        self.hdr_targets = hdr_targets
 
 
     def __getitem__(self, index):
@@ -248,18 +252,28 @@ class MonteCarloDataset(AbstractDataset):
         if self.clean_targets:
             target = self.reference
         else:
-            target_path = os.path.join(self.root_dir, 'target', self.imgs[index])
-            target = Image.open(target_path).convert('RGB')
+            target_fname = self.imgs[index].replace('render', 'target')
+            file_ext = '.exr' if self.hdr_targets else '.png'
+            target_fname = os.path.splitext(target_fname)[0] + file_ext
+            target_path = os.path.join(self.root_dir, 'target', target_fname)
+            if self.hdr_targets:
+                target = tvF.to_pil_image(load_hdr_as_tensor(target_path))
+            else:
+                target = Image.open(target_path).convert('RGB')
 
-        # Get actual rendering
+        # Get buffers
         render_path = os.path.join(self.root_dir, 'render', self.imgs[index])
-        render = Image.open(render_path).convert('RGB')
-
-        # Get other buffers
         albedo_path = os.path.join(self.root_dir, 'albedo', self.albedos[index])
-        albedo = Image.open(albedo_path).convert('RGB')
         normal_path =  os.path.join(self.root_dir, 'normal', self.normals[index])
-        normal = Image.open(normal_path).convert('RGB')
+        
+        if self.hdr_buffers:
+            render = tvF.to_pil_image(load_hdr_as_tensor(render_path))
+            albedo = tvF.to_pil_image(load_hdr_as_tensor(albedo_path))
+            normal = tvF.to_pil_image(load_hdr_as_tensor(normal_path))
+        else:
+            render = Image.open(render_path).convert('RGB')
+            albedo = Image.open(albedo_path).convert('RGB')
+            normal = Image.open(normal_path).convert('RGB')
 
         # Crop
         if self.crop_size != 0:
@@ -275,11 +289,5 @@ class MonteCarloDataset(AbstractDataset):
 
 if __name__ == '__main__':
 
-    p = NoisyDataset('../data/train_4200', 0, 128, noise_dist=('poisson', 100))
-    p[0]
-    '''
-    s = tvF.to_pil_image(s)
-    t = tvF.to_pil_image(t)
-    s.show()
-    t.show()
-    '''
+    mc = MonteCarloDataset('../data/mc/train', 0, 128, clean_targets=True)
+    mc[0]
