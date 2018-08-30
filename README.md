@@ -115,28 +115,58 @@ python3 test.py \
 
 See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` for an example.
 
+## Results
+
+Model was only trained for 30 epochs with a train/valid split of 1000/200 on a GTX 780. Much better results can be achieved with a larger dataset and longer training time. I might upload better results when I get the time to train on a P100 cluster.
+
 <table align="center">
   <tr align="center">
-    <th colspan=6>Gaussian noise (σ = 30)</td>
-    </tr>
+    <th colspan=6>Gaussian noise (σ = 25)</td>
+  </tr>
   <tr align="center">
-    <td colspan=2>Noisy input (28.27 dB)</td>
-    <td colspan=2>Denoised (31.96 dB)</td>
+    <td colspan=2>Noisy input (18.46 dB)</td>
+    <td colspan=2>Denoised (30.35 dB)</td>
     <td colspan=2>Ground truth</td>
   </tr>
   <tr align="center">
-    <td colspan=2><img src="figures/lenna-noisy.png"></td>
-    <td colspan=2><img src="figures/lenna-denoised.png"></td>
+    <td colspan=2><img src="figures/lenna-gaussian-noisy.png"></td>
+    <td colspan=2><img src="figures/lenna-gaussian-denoised.png"></td>
     <td colspan=2><img src="figures/lenna.png"></td>
   </tr>  
   <tr align="center">
-    <td colspan=2>Noisy input (28.23 dB)</td>
-    <td colspan=2>Denoised (32.77 dB)</td>
+    <td colspan=2>Noisy input (18.85 dB)</td>
+    <td colspan=2>Denoised (31.47 dB)</td>
     <td colspan=2>Ground truth</td>
   </tr>
   <tr align="center">
     <td colspan=2><img src="figures/monarch-noisy.png"></td>
     <td colspan=2><img src="figures/monarch-denoised.png"></td>
+    <td colspan=2><img src="figures/monarch.png"></td>
+  </tr> 
+</table>
+
+<table>
+  <tr align="center">
+    <th colspan=6>Text overlay (*p* = 0.25)</td>
+  </tr>
+  <tr align="center">
+  <td colspan=2>Noisy input (15.77 dB)</td>
+  <td colspan=2>Denoised (25.41 dB)</td>
+  <td colspan=2>Ground truth</td>
+  </tr>
+  <tr align="center">
+    <td colspan=2><img src="figures/lenna-text-noisy.png"></td>
+    <td colspan=2><img src="figures/lenna-text-denoised.png"></td>
+    <td colspan=2><img src="figures/lenna.png"></td>
+  </tr>  
+  <tr align="center">
+    <td colspan=2>Noisy input (17.05 dB)</td>
+    <td colspan=2>Denoised (27.73 dB)</td>
+    <td colspan=2>Ground truth</td>
+  </tr>
+  <tr align="center">
+    <td colspan=2><img src="figures/monarch-text-noisy.png"></td>
+    <td colspan=2><img src="figures/monarch-text-denoised.png"></td>
     <td colspan=2><img src="figures/monarch.png"></td>
   </tr>  
 </table>
@@ -209,17 +239,17 @@ python3 train.py \
 - [x] Track validation loss and PSNR over time to plot
 - [x] Implement Poisson noise with L2 loss
 - [x] Added support for maximum occupancy for text corruption
-- [ ] Train on a half-decent GPU and add results
+- [x] Train on a half-decent GPU and add results
   - [x] Gaussian noise
-  - [ ] Poisson noise
-  - [ ] Text overlay
-- [ ] Move all print statements to a `logging` solution
-- [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
+  - [x] Text overlay
+  - [ ] Poisson noise: unclear how the paper deals with this
 - [ ] Monte Carlo rendering noise
   - [x] Generate MC renders with albedo and normal buffers using Tungsten
   - [x] Implement HDR-specific functions (e.g. Reinhard tone mapping)
   - [x] Pass to U-Net
   - [ ] Fix some important bugs...
+  - [ ] Move all print statements to a `logging` solution
+  - [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
 
 ## References
 * Jaakko Lehtinen, Jacob Munkberg, Jon Hasselgren, Samuli Laine, Tero Karras, Miika Aittala,and Timo Aila. *Noise2Noise: Learning Image Restoration without Clean Data*. Proceedings of the 35th International Conference on Machine Learning, 2018.
