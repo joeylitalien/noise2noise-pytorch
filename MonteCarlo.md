@@ -1,6 +1,6 @@
 # Monte Carlo noise
 
-*This is a work-in-progress. A lot of this is not optimal (e.g. rendering the whole scene when we only need a crop of it, single viewpoint, etc.).*
+*This is a work-in-progress. A lot of this is not optimal (e.g. rendering the whole scene when we only need a crop of it, single viewpoint).*
 
 ## Dataset 
 
