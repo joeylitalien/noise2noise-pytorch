@@ -85,7 +85,7 @@ python3 train.py
 ```
 
 ### Text overlay
-The noise parameter is the number of text artifacts overlayed.
+The noise parameter is the approximate probability *p* that a pixel is covered by text.
 ```
 python3 train.py \
   --loss l1 \
