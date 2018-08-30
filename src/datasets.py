@@ -12,8 +12,8 @@ import numpy as np
 from random import choice
 from string import ascii_letters
 from PIL import Image, ImageFont, ImageDraw
-import Imath
 import OpenEXR
+
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
 import matplotlib
@@ -112,18 +112,23 @@ class NoisyDataset(AbstractDataset):
         c = len(img.getbands())
 
         # Poisson distribution
+        # It is unclear how the paper handles this. Poisson noise is not additive,
+        # it is data dependent, meaning that adding sampled valued from a Poisson 
+        # will change the image intensity...
         if self.noise_type == 'poisson':
-            noise = np.random.poisson(self.noise_param, (h, w, c))
-
+            noise = np.random.poisson(img)
+            noise_img = img + noise
+            noise_img = 255 * (noise_img / np.amax(noise_img))
+            
         # Normal distribution (default)
         else:
             std = np.random.uniform(0, self.noise_param)
             noise = np.random.normal(0, std, (h, w, c))
 
-        # Add noise and clip
-        noise_img = np.array(img) + noise
+            # Add noise and clip
+            noise_img = np.array(img) + noise
+            
         noise_img = np.clip(noise_img, 0, 255).astype(np.uint8)
-
         return Image.fromarray(noise_img)
 
 
@@ -194,6 +199,9 @@ class NoisyDataset(AbstractDataset):
             img = self._random_crop([img])[0]
 
         # Corrupt source image
+        img.show()
+        tmp = self._corrupt(img)
+        tmp.show()
         source = tvF.to_tensor(self._corrupt(img))
 
         # Corrupt target image, but not when clean targets are requested
@@ -266,15 +274,12 @@ class MonteCarloDataset(AbstractDataset):
 
 
 if __name__ == '__main__':
-    """
-    mc = MonteCarloDataset('../data/tonemapped_train', 0, 128, 'both')
-    s, t = mc[0]
+
+    p = NoisyDataset('../data/train_4200', 0, 128, noise_dist=('poisson', 100))
+    p[0]
+    '''
+    s = tvF.to_pil_image(s)
     t = tvF.to_pil_image(t)
-    s0 = tvF.to_pil_image(s.narrow(0, 0, 3))
-    s1 = tvF.to_pil_image(s.narrow(0, 3, 3))
-    s2 = tvF.to_pil_image(s.narrow(0, 6, 3))
-    s0.save('source.png')
-    s1.save('albedo.png')
-    s2.save('normal.png')
-    t.save('target.png')
-    """
+    s.show()
+    t.show()
+    '''
