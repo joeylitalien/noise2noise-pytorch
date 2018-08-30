@@ -139,15 +139,13 @@ Model was only trained for 30 epochs with a train/valid split of 1000/200 on a G
     <td colspan=2>Ground truth</td>
   </tr>
   <tr align="center">
-    <td colspan=2><img src="figures/monarch-noisy.png"></td>
-    <td colspan=2><img src="figures/monarch-denoised.png"></td>
+    <td colspan=2><img src="figures/monarch-gaussian-noisy.png"></td>
+    <td colspan=2><img src="figures/monarch-gaussian-denoised.png"></td>
     <td colspan=2><img src="figures/monarch.png"></td>
   </tr> 
-</table>
 
-<table>
   <tr align="center">
-    <th colspan=6>Text overlay (*p* = 0.25)</td>
+    <th colspan=6>Text overlay (<i>p</i> = 0.25)</td>
   </tr>
   <tr align="center">
   <td colspan=2>Noisy input (15.77 dB)</td>
