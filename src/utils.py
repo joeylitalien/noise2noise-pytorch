@@ -9,6 +9,9 @@ import os
 import numpy as np
 from math import log10
 from datetime import datetime
+import OpenEXR
+from PIL import Image
+import Imath
 
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
@@ -77,22 +80,24 @@ def plot_per_epoch(ckpt_dir, title, measurements, y_label):
     plt.close()
 
 
-def load_hdr(self, img_path):
-    """Converts OpenEXR image to PIL format."""
+def load_hdr_as_tensor(img_path):
+    """Converts OpenEXR image to torch float tensor."""
 
     # Read OpenEXR file
     if not OpenEXR.isOpenExrFile(img_path):
-        raise ValueError('HDR images must be in OpenEXR (.exr) format')
+        raise ValueError(f'Image {img_path} is not a valid OpenEXR file')
     src = OpenEXR.InputFile(img_path)
     pixel_type = Imath.PixelType(Imath.PixelType.FLOAT)
     dw = src.header()['dataWindow']
     size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
-
-    # Load as float
-    rgb = [np.frombuffer(src.channel(c, pixel_type), dtype=np.float32) for c in 'RGB']
-    rgb8 = [Image.frombytes('F', size, c.tostring()).convert('L') for c in rgb]
-
-    return Image.merge('RGB', rgb8)
+    
+    # Read into tensor
+    tensor = torch.zeros((3, size[1], size[0]))
+    for i, c in enumerate('RGB'):
+        rgb32f = np.fromstring(src.channel(c, pixel_type), dtype=np.float32)
+        tensor[i, :, :] = torch.from_numpy(rgb32f.reshape(size[1], size[0]))
+        
+    return tensor
 
 
 def reinhard_tonemap(tensor):
@@ -115,11 +120,10 @@ def create_montage(img_name, noise_type, save_path, source_t, denoised_t, clean_
     fig.canvas.set_window_title(img_name.capitalize()[:-4])
 
     # Bring tensors to CPU
-    source_t = source_t.cpu()
+    source_t = source_t.cpu().narrow(0, 0, 3)
     denoised_t = denoised_t.cpu()
     clean_t = clean_t.cpu()
     
-    #source = tvF.to_pil_image(source_t.narrow(0, 0, 3))
     source = tvF.to_pil_image(source_t)
     denoised = tvF.to_pil_image(torch.clamp(denoised_t, 0, 1))
     clean = tvF.to_pil_image(clean_t)
