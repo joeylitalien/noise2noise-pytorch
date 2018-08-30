@@ -250,14 +250,14 @@ python3 train.py \
 - [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
 
 ## References
-* Jaakko Lehtinen, Jacob Munkberg, Jon Hasselgren, Samuli Laine, Tero Karras, Miika Aittala,and Timo Aila. *Noise2Noise: Learning Image Restoration without Clean Data*. Proceedings of the 35th International Conference on Machine Learning, 2018.
+* Jaakko Lehtinen, Jacob Munkberg, Jon Hasselgren, Samuli Laine, Tero Karras, Miika Aittala,and Timo Aila. [*Noise2Noise: Learning Image Restoration without Clean Data*](https://research.nvidia.com/publication/2018-07_Noise2Noise%3A-Learning-Image). Proceedings of the 35th International Conference on Machine Learning, 2018.
 
-* Tsung-Yi Lin, Michael Maire, Serge Belongie, Lubomir Bourdev, Ross Girshick, James Hays, Pietro Perona, Deva Ramanan, C. Lawrence Zitnick, and Piotr Dollár. *Microsoft COCO: Common Objects in Context*. 	arXiv:1405.0312, 2014.
+* Tsung-Yi Lin, Michael Maire, Serge Belongie, Lubomir Bourdev, Ross Girshick, James Hays, Pietro Perona, Deva Ramanan, C. Lawrence Zitnick, and Piotr Dollár. [*Microsoft COCO: Common Objects in Context*](https://arxiv.org/abs/1405.0312). 	arXiv:1405.0312, 2014.
 
-* Benedikt Bitterli, Fabrice Rousselle, Bochang Moon, José A. Iglesias-Guitián, David Adler, Kenny Mitchell, Wojciech Jarosz, and Jan Novák. *Nonlinearly Weighted First-order Regression
-for Denoising Monte Carlo Renderings*. Computer Graphics Forum (Proceedings of EGSR 2016), 2016.
+* Benedikt Bitterli, Fabrice Rousselle, Bochang Moon, José A. Iglesias-Guitián, David Adler, Kenny Mitchell, Wojciech Jarosz, and Jan Novák. [*Nonlinearly Weighted First-order Regression
+for Denoising Monte Carlo Renderings*](https://benedikt-bitterli.me/nfor/). Computer Graphics Forum (Proceedings of EGSR 2016), 2016.
 
-* Benedikt Bitterli. *Tungsten Renderer.* GitHub repository: `tunabrain/tungsten`, 2018.
+* Benedikt Bitterli. [*Tungsten Renderer*](https://github.com/tunabrain/tungsten). GitHub repository: `tunabrain/tungsten`, 2018.
 
 ## Acknowledgments
 
