@@ -182,10 +182,10 @@ cd build/release
 make
 ```
 
-Add Tungsten to your path so you don't have to specify its location.
+Add Tungsten to your path so you don't have to specify its location (use &#96; quotations and `.profile` on macOS):
 ```
-echo `export PATH="<tungsten-release-dir>":$PATH` >> ~/.profile
-source ~/.profile
+echo 'export PATH="<tungsten-release-dir>":$PATH' >> ~/.bashrc
+source ~/.bashrc
 ```
 
 Run `tungsten -v` to see if the path is correctly set. If you see Tungsten's version, you are good to go.
@@ -197,7 +197,7 @@ The original paper use 860 architectural images; we use a single scene for testi
 ```
 cd data && mkdir scenes
 wget https://benedikt-bitterli.me/resources/tungsten/bathroom.zip
-unzip car.zip
+unzip bathroom.zip -d scenes
 rm *.zip
 ```
 
@@ -208,11 +208,12 @@ To launch a series of renders to build a training set, do:
 python3 render.py \
   --scene-path ../data/scenes/car/scene.json \
   --spp 8 \
-  --nb-renders 40 \
-  --output-dir ../data/train_ldr
+  --nb-renders 48 \
+  --output-dir ../data/train_ldr \
+  --hdr-targets
 ```
 
-You can also specify the path to Tungsten if you have it installed somewhere else with the `--tungsten` argument. The default assumes it's in the environment path already. Moreover, images are tonemapped using [Reinhard](https://www.cs.utah.edu/~reinhard/cdrom/) by default; to save images as HDR images (OpenEXR format), use the `--hdr` option.
+You can also specify the path to Tungsten if you have it installed somewhere else with the `--tungsten` argument. The default assumes it's in the environment path already. Moreover, images are tonemapped using [Reinhard](https://www.cs.utah.edu/~reinhard/cdrom/) by default; to save images as HDR images (OpenEXR format), use the `--hdr-<output-type>` options.
 
 A specific width and height can be given with `--resolution <width> <height>` but you will need to re-render a ground truth image if the width/height ratio is not preserved. References images are automatically resized otherwise.
 
