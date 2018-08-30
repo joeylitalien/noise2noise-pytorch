@@ -207,6 +207,8 @@ class Noise2Noise(object):
             loss_meter.update(loss.item())
 
             # Compute PSRN
+            if self.is_mc:
+                source_denoised = reinhard_tonemap(source_denoised)
             # TODO: Find a way to offload to GPU, and deal with uneven batch sizes
             for i in range(self.p.batch_size):
                 source_denoised = source_denoised.cpu()
