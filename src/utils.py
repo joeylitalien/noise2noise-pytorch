@@ -2,10 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import torch
+import torch.nn.functional as F
 import torchvision.transforms.functional as tvF
+
 import os
 import numpy as np
+from math import log10
 from datetime import datetime
+
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
 import matplotlib
@@ -98,21 +102,13 @@ def reinhard_tonemap(tensor):
     return torch.pow(tensor / (1 + tensor), 1 / 2.2)
 
 
-def psnr(source_denoised, target):
-    """Computes peak signal-to-noise ratio.
-    TODO: Find a pure PyTorch minibatch solution that also works on the GPU.
-          Not sure if possible since torch.mean() doesn't accept bytes...
-    """
-
-    s = source_denoised.detach()
-    t = target.detach()
-
-    s = np.array(tvF.to_pil_image(source_denoised.clamp(0, 1)))
-    t = np.array(tvF.to_pil_image(target))
-    return 10 * np.log10((255 ** 2) / ((s - t) ** 2).mean())
+def psnr(input, target):
+    """Computes peak signal-to-noise ratio."""
+    
+    return 10 * torch.log10(1 / F.mse_loss(input, target))
 
 
-def create_montage(img_name, save_path, source_t, denoised_t, clean_t, show):
+def create_montage(img_name, noise_type, save_path, source_t, denoised_t, clean_t, show):
     """Creates montage for easy comparison."""
 
     fig, ax = plt.subplots(1, 3, figsize=(9, 3))
@@ -123,7 +119,8 @@ def create_montage(img_name, save_path, source_t, denoised_t, clean_t, show):
     denoised_t = denoised_t.cpu()
     clean_t = clean_t.cpu()
     
-    source = tvF.to_pil_image(source_t.narrow(0, 0, 3))
+    #source = tvF.to_pil_image(source_t.narrow(0, 0, 3))
+    source = tvF.to_pil_image(source_t)
     denoised = tvF.to_pil_image(torch.clamp(denoised_t, 0, 1))
     clean = tvF.to_pil_image(clean_t)
 
@@ -144,9 +141,9 @@ def create_montage(img_name, save_path, source_t, denoised_t, clean_t, show):
 
     # Save to files
     fname = os.path.splitext(img_name)[0]
-    source.save(os.path.join(save_path, f'{fname}-noisy.png'))
-    denoised.save(os.path.join(save_path, f'{fname}-denoised.png'))
-    fig.savefig(os.path.join(save_path, f'{fname}-montage.png'), bbox_inches='tight')
+    source.save(os.path.join(save_path, f'{fname}-{noise_type}-noisy.png'))
+    denoised.save(os.path.join(save_path, f'{fname}-{noise_type}-denoised.png'))
+    fig.savefig(os.path.join(save_path, f'{fname}-{noise_type}-montage.png'), bbox_inches='tight')
 
 
 class AvgMeter(object):
