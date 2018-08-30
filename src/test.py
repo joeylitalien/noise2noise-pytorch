@@ -3,8 +3,10 @@
 
 import torch
 import torch.nn as nn
+
 from datasets import load_dataset
 from noise2noise import Noise2Noise
+
 from argparse import ArgumentParser
 
 
@@ -40,7 +42,7 @@ if __name__ == '__main__':
     n2n = Noise2Noise(params, trainable=False)
     params.redux = False
     params.clean_targets = True
-    if params.noise_type == 'test':
+    if params.noise_type == 'text':
         params.noise_param = 0.25
     test_loader = load_dataset(params.data, 0, params, shuffled=False, single=True)
     n2n.load_model(params.load_ckpt)
