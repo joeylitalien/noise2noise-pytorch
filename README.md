@@ -240,7 +240,7 @@ python3 train.py \
 - [x] Train on a half-decent GPU and add results
   - [x] Gaussian noise
   - [x] Text overlay
-  - [ ] Poisson noise: unclear how the paper deals with this
+  - [ ] Poisson noise: unclear how the paper deals with this since Poisson is data-dependent
 - [ ] Monte Carlo rendering noise
   - [x] Generate MC renders with albedo and normal buffers using Tungsten
   - [x] Implement HDR-specific functions (e.g. Reinhard tone mapping)
