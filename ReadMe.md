@@ -109,7 +109,7 @@ See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` 
 
 ## Results
 
-Model was only trained for 1000 epochs with a train/valid split of 2000/400 on a GTX 780. I will upload the results for text trained with clean targets soon; text overlay takes time to train since the text adding routine is expensive.
+Model was only trained for 100 epochs with a train/valid split of 2000/400 on a GTX 780. I will upload the results for text trained with clean targets soon; text overlay takes time to train since the text adding routine is expensive.
 
 
 <table align="center">
