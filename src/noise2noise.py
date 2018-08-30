@@ -45,7 +45,7 @@ class Noise2Noise(object):
 
             # Learning rate adjustment
             self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optim,
-                patience=10, factor=0.5, verbose=True)
+                patience=self.p.nb_epochs/4, factor=0.5, verbose=True)
 
             # Loss function
             if self.p.loss == 'hdr':
@@ -85,7 +85,10 @@ class Noise2Noise(object):
             else:
                 ckpt_dir_name = f'{datetime.now():{self.p.noise_type}-%H%M}'
             if self.p.ckpt_overwrite:
-                ckpt_dir_name = self.p.noise_type
+                if self.p.clean_targets:
+                    ckpt_dir_name = f'{self.p.noise_type}-clean'
+                else:
+                    ckpt_dir_name = self.p.noise_type
                 
             self.ckpt_dir = os.path.join(self.p.ckpt_save_path, ckpt_dir_name)
             if not os.path.isdir(self.ckpt_dir):
