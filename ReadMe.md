@@ -109,7 +109,8 @@ See `python3 test.py --h` for list of optional arguments, or `examples/test.sh` 
 
 ## Results
 
-Model was only trained for 30 epochs with a train/valid split of 1000/200 on a GTX 780. Much better results can be achieved with a larger dataset and longer training time. I might upload better results when I get the time to train on a P100 cluster.
+Model was only trained for 1000 epochs with a train/valid split of 2000/400 on a GTX 780. I will upload the results for text trained with clean targets soon; text overlay takes time to train since the text adding routine is expensive.
+
 
 <table align="center">
   <tr align="center">
