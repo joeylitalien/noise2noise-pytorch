@@ -121,50 +121,58 @@ Model was only trained for 30 epochs with a train/valid split of 1000/200 on a G
 
 <table align="center">
   <tr align="center">
-    <th colspan=6>Gaussian noise (σ = 25)</td>
+    <th colspan=9>Gaussian noise (σ = 25)</td>
   </tr>
   <tr align="center">
-    <td colspan=2>Noisy input (18.46 dB)</td>
-    <td colspan=2>Denoised (30.35 dB)</td>
+    <td colspan=2>Noisy input (21.75 dB)</td>
+    <td colspan=2>Denoised (31.73 dB)</td>
+    <td colspan=2>Clean targets (31.70 dB)</td>
     <td colspan=2>Ground truth</td>
   </tr>
   <tr align="center">
     <td colspan=2><img src="figures/lenna-gaussian-noisy.png"></td>
     <td colspan=2><img src="figures/lenna-gaussian-denoised.png"></td>
+    <td colspan=2><img src="figures/lenna-gaussian-clean-denoised.png"></td>
     <td colspan=2><img src="figures/lenna.png"></td>
   </tr>  
   <tr align="center">
-    <td colspan=2>Noisy input (18.85 dB)</td>
-    <td colspan=2>Denoised (31.47 dB)</td>
+    <td colspan=2>Noisy input (27.15 dB)</td>
+    <td colspan=2>Denoised (35.97 dB)</td>
+    <td colspan=2>Clean targets (35.94 dB)</td>
     <td colspan=2>Ground truth</td>
   </tr>
   <tr align="center">
     <td colspan=2><img src="figures/monarch-gaussian-noisy.png"></td>
     <td colspan=2><img src="figures/monarch-gaussian-denoised.png"></td>
+    <td colspan=2><img src="figures/monarch-gaussian-clean-denoised.png"></td>
     <td colspan=2><img src="figures/monarch.png"></td>
   </tr> 
 
   <tr align="center">
-    <th colspan=6>Text overlay (<i>p</i> = 0.25)</td>
+    <th colspan=9>Text overlay (<i>p</i> = 0.25)</td>
   </tr>
   <tr align="center">
-  <td colspan=2>Noisy input (15.77 dB)</td>
-  <td colspan=2>Denoised (25.41 dB)</td>
+  <td colspan=2>Noisy input (20.28 dB)</td>
+  <td colspan=2>Denoised (33.71 dB)</td>
+  <td colspan=2>Clean targets (? dB)</td>
   <td colspan=2>Ground truth</td>
   </tr>
   <tr align="center">
     <td colspan=2><img src="figures/lenna-text-noisy.png"></td>
     <td colspan=2><img src="figures/lenna-text-denoised.png"></td>
+    <td colspan=2><img src="figures/lenna-text-clean-denoised.png"></td>
     <td colspan=2><img src="figures/lenna.png"></td>
   </tr>  
   <tr align="center">
-    <td colspan=2>Noisy input (17.05 dB)</td>
-    <td colspan=2>Denoised (27.73 dB)</td>
+    <td colspan=2>Noisy input (19.43 dB)</td>
+    <td colspan=2>Denoised (33.40 dB)</td>
+  <td colspan=2>Clean targets (? dB)</td>
     <td colspan=2>Ground truth</td>
   </tr>
   <tr align="center">
     <td colspan=2><img src="figures/monarch-text-noisy.png"></td>
     <td colspan=2><img src="figures/monarch-text-denoised.png"></td>
+    <td colspan=2><img src="figures/monarch-text-clean-denoised.png"></td>
     <td colspan=2><img src="figures/monarch.png"></td>
   </tr>  
 </table>
