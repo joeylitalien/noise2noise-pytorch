@@ -1,6 +1,6 @@
 python3 ../train.py \
-  --train-dir ../../data/train_ldr --train-size 48 \
-  --valid-dir ../../data/valid_ldr --valid-size 8 \
+  --train-dir ../../data/mc/train --train-size 48 \
+  --valid-dir ../../data/mc/valid --valid-size 8 \
   --ckpt-save-path ../../ckpts \
   --ckpt-overwrite \
   --report-interval 4 \

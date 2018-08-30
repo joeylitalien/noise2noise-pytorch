@@ -1,10 +1,10 @@
 python3 ../train.py \
-  --train-dir ../../data/train --train-size 100 \
-  --valid-dir ../../data/valid --valid-size 20 \
+  --train-dir ../../data/train --train-size 1000 \
+  --valid-dir ../../data/valid --valid-size 200 \
   --ckpt-save-path ../../ckpts \
   --ckpt-overwrite \
   --report-interval 5 \
-  --nb-epochs 10 \
+  --nb-epochs 100 \
   --loss l2 \
   --noise-type gaussian \
   --noise-param 50 \

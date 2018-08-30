@@ -1,5 +1,5 @@
 python3 ../test.py \
-  --data ../../data/test_ldr \
+  --data ../../data/mc/test \
   --load-ckpt ../../ckpts/mc/n2n-mc.pt \
   --noise-type mc \
   --crop-size 512 \
