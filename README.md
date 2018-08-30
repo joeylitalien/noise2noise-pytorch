@@ -246,8 +246,8 @@ python3 train.py \
   - [x] Implement HDR-specific functions (e.g. Reinhard tone mapping)
   - [x] Pass to U-Net
   - [ ] Fix some important bugs...
-  - [ ] Move all print statements to a `logging` solution
-  - [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
+- [ ] Move all print statements to a `logging` solution
+- [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
 
 ## References
 * Jaakko Lehtinen, Jacob Munkberg, Jon Hasselgren, Samuli Laine, Tero Karras, Miika Aittala,and Timo Aila. *Noise2Noise: Learning Image Restoration without Clean Data*. Proceedings of the 35th International Conference on Machine Learning, 2018.
