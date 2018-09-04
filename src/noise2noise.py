@@ -89,12 +89,12 @@ class Noise2Noise(object):
                     ckpt_dir_name = f'{self.p.noise_type}-clean'
                 else:
                     ckpt_dir_name = self.p.noise_type
-                
+
             self.ckpt_dir = os.path.join(self.p.ckpt_save_path, ckpt_dir_name)
-            if not os.path.isdir(self.ckpt_dir):
-                os.mkdir(self.ckpt_dir)
             if not os.path.isdir(self.p.ckpt_save_path):
                 os.mkdir(self.p.ckpt_save_path)
+            if not os.path.isdir(self.ckpt_dir):
+                os.mkdir(self.ckpt_dir)
 
         # Save checkpoint dictionary
         if self.p.ckpt_overwrite:
