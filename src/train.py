@@ -37,6 +37,7 @@ def parse_args():
     parser.add_argument('-n', '--noise-type', help='noise type',
         choices=['gaussian', 'poisson', 'text', 'mc'], default='gaussian', type=str)
     parser.add_argument('-p', '--noise-param', help='noise parameter (e.g. std for gaussian)', default=50, type=float)
+    parser.add_argument('-s', '--seed', help='fix random seed', type=int)
     parser.add_argument('-c', '--crop-size', help='random crop size', default=128, type=int)
     parser.add_argument('--clean-targets', help='use clean targets for training', action='store_true')
 
