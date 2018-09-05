@@ -34,7 +34,7 @@ def load_dataset(root_dir, redux, params, shuffled=False, single=False):
         dataset = MonteCarloDataset(root_dir, redux, params.crop_size,
             clean_targets=params.clean_targets)
     else:
-        dataset = NoisyDataset(root_dir, redux, params.crop_size, 
+        dataset = NoisyDataset(root_dir, redux, params.crop_size,
             clean_targets=params.clean_targets, noise_dist=noise, seed=params.seed)
 
     # Use batch size of 1, if requested (e.g. test set)
@@ -96,7 +96,7 @@ class AbstractDataset(Dataset):
 class NoisyDataset(AbstractDataset):
     """Class for injecting random noise into dataset."""
 
-    def __init__(self, root_dir, redux, crop_size, clean_targets=False, 
+    def __init__(self, root_dir, redux, crop_size, clean_targets=False,
         noise_dist=('gaussian', 50.), seed=None):
         """Initializes noisy image dataset."""
 
@@ -122,13 +122,13 @@ class NoisyDataset(AbstractDataset):
 
         # Poisson distribution
         # It is unclear how the paper handles this. Poisson noise is not additive,
-        # it is data dependent, meaning that adding sampled valued from a Poisson 
+        # it is data dependent, meaning that adding sampled valued from a Poisson
         # will change the image intensity...
         if self.noise_type == 'poisson':
             noise = np.random.poisson(img)
             noise_img = img + noise
             noise_img = 255 * (noise_img / np.amax(noise_img))
-            
+
         # Normal distribution (default)
         else:
             if self.seed:
@@ -139,7 +139,7 @@ class NoisyDataset(AbstractDataset):
 
             # Add noise and clip
             noise_img = np.array(img) + noise
-            
+
         noise_img = np.clip(noise_img, 0, 255).astype(np.uint8)
         return Image.fromarray(noise_img)
 
@@ -166,7 +166,10 @@ class NoisyDataset(AbstractDataset):
         mask_draw = ImageDraw.Draw(mask_img)
 
         # Random occupancy in range [0, p]
-        max_occupancy = np.random.uniform(0, self.noise_param)
+        if self.seed:
+            max_occupancy = self.noise_param
+        else:
+            max_occupancy = np.random.uniform(0, self.noise_param)
         def get_occupancy(x):
             y = np.array(x, dtype=np.uint8)
             return np.sum(y) / y.size
@@ -226,7 +229,7 @@ class NoisyDataset(AbstractDataset):
 class MonteCarloDataset(AbstractDataset):
     """Class for dealing with Monte Carlo rendered images."""
 
-    def __init__(self, root_dir, redux, crop_size, 
+    def __init__(self, root_dir, redux, crop_size,
         hdr_buffers=False, hdr_targets=True, clean_targets=False):
         """Initializes Monte Carlo image dataset."""
 
@@ -246,7 +249,7 @@ class MonteCarloDataset(AbstractDataset):
         # Read reference image (converged target)
         ref_path = os.path.join(root_dir, 'reference.png')
         self.reference = Image.open(ref_path).convert('RGB')
-        
+
         # High dynamic range images
         self.hdr_buffers = hdr_buffers
         self.hdr_targets = hdr_targets
@@ -272,7 +275,7 @@ class MonteCarloDataset(AbstractDataset):
         render_path = os.path.join(self.root_dir, 'render', self.imgs[index])
         albedo_path = os.path.join(self.root_dir, 'albedo', self.albedos[index])
         normal_path =  os.path.join(self.root_dir, 'normal', self.normals[index])
-        
+
         if self.hdr_buffers:
             render = tvF.to_pil_image(load_hdr_as_tensor(render_path))
             albedo = tvF.to_pil_image(load_hdr_as_tensor(albedo_path))
