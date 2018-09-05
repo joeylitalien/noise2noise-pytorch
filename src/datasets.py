@@ -11,7 +11,7 @@ from utils import load_hdr_as_tensor
 import os
 from sys import platform
 import numpy as np
-from random import choice
+import random
 from string import ascii_letters
 from PIL import Image, ImageFont, ImageDraw
 import OpenEXR
@@ -167,6 +167,7 @@ class NoisyDataset(AbstractDataset):
 
         # Random occupancy in range [0, p]
         if self.seed:
+            random.seed(self.seed)
             max_occupancy = self.noise_param
         else:
             max_occupancy = np.random.uniform(0, self.noise_param)
@@ -178,7 +179,7 @@ class NoisyDataset(AbstractDataset):
         while 1:
             font = ImageFont.truetype(serif, np.random.randint(16, 21))
             length = np.random.randint(10, 25)
-            chars = ''.join(choice(ascii_letters) for i in range(length))
+            chars = ''.join(random.choice(ascii_letters) for i in range(length))
             color = tuple(np.random.randint(0, 255, c))
             pos = (np.random.randint(0, w), np.random.randint(0, h))
             text_draw.text(pos, chars, color, font=font)
