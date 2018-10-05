@@ -117,18 +117,6 @@ Gaussian model was trained for 100 epochs with a train/valid split of 2000/400. 
     <th colspan=9>Gaussian noise (σ = 25)</td>
   </tr>
   <tr align="center">
-    <td colspan=2>Noisy input (20.36 dB)</td>
-    <td colspan=2>Denoised (31.22 dB)</td>
-    <td colspan=2>Clean targets (32.23 dB)</td>
-    <td colspan=2>Ground truth</td>
-  </tr>
-  <tr align="center">
-    <td colspan=2><img src="figures/lenna-gaussian-noisy.png"></td>
-    <td colspan=2><img src="figures/lenna-gaussian-denoised.png"></td>
-    <td colspan=2><img src="figures/lenna-gaussian-clean.png"></td>
-    <td colspan=2><img src="figures/lenna.png"></td>
-  </tr>  
-  <tr align="center">
     <td colspan=2>Noisy input (20.34 dB)</td>
     <td colspan=2>Denoised (32.68 dB)</td>
     <td colspan=2>Clean targets (32.49 dB)</td>
@@ -144,18 +132,6 @@ Gaussian model was trained for 100 epochs with a train/valid split of 2000/400. 
   <tr align="center">
     <th colspan=9>Text overlay (<i>p</i> = 0.25)</td>
   </tr>
-  <tr align="center">
-  <td colspan=2>Noisy input (15.21 dB)</td>
-  <td colspan=2>Denoised (27.79 dB)</td>
-  <td colspan=2>Clean targets (27.72 dB)</td>
-  <td colspan=2>Ground truth</td>
-  </tr>
-  <tr align="center">
-    <td colspan=2><img src="figures/lenna-text-noisy.png"></td>
-    <td colspan=2><img src="figures/lenna-text-denoised.png"></td>
-    <td colspan=2><img src="figures/lenna-text-clean.png"></td>
-    <td colspan=2><img src="figures/lenna.png"></td>
-  </tr>  
   <tr align="center">
     <td colspan=2>Noisy input (15.07 dB)</td>
     <td colspan=2>Denoised (28.10 dB)</td>
