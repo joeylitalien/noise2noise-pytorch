@@ -146,17 +146,9 @@ Gaussian model was trained for 100 epochs with a train/valid split of 2000/400. 
   </tr>  
 </table>
 
-## To do list
-- [x] Test Gaussian noise
-- [x] Track validation loss and PSNR over time to plot
-- [x] Implement Poisson noise with L2 loss
-- [x] Added support for maximum occupancy for text corruption
-- [x] Train on a half-decent GPU and add results
-  - [x] Gaussian noise
-  - [x] Text overlay
-  - [ ] Poisson noise: unclear how the paper deals with this since Poisson is data-dependent
-- [ ] Move all print statements to a `logging` solution
-- [ ] Find elegant solution to variable-size images (fix size, or modify architecture?)
+## Known issues
+- Activation functions should be LeakyReLUs everywhere except last layer where it should be ReLU. The current implementation (and pretrained models) assumes the opposite due to me originally misreading the paper. It was reported that using the correct version yields unstable training without batch norm; I haven't tested it yet.
+- It is unclear how to deal with Poisson noise since it is data-dependent and thus nonadditive. See [official TensorFlow implementation](https://github.com/NVlabs/noise2noise) to adapt properly.
 
 ## References
 * Jaakko Lehtinen, Jacob Munkberg, Jon Hasselgren, Samuli Laine, Tero Karras, Miika Aittala,and Timo Aila. [*Noise2Noise: Learning Image Restoration without Clean Data*](https://research.nvidia.com/publication/2018-07_Noise2Noise%3A-Learning-Image). Proceedings of the 35th International Conference on Machine Learning, 2018.
