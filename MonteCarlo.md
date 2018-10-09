@@ -84,7 +84,7 @@ python3 ../test.py \
 ```
 
 ## Results
-The presence of LeakyReLU at the last layer is puzzling since this allows for negative HDR values. As is, the network has trouble outputting an image that makes sense. Training with a sigmoid activation resolves this problem, but this might break the math. I will try to fix this when I get the time.
+Eventually...
 
 
 ## Additional references
