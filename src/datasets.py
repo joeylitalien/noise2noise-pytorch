@@ -200,7 +200,7 @@ class NoisyDataset(AbstractDataset):
         elif self.noise_type == 'text':
             return self._add_text_overlay(img)
         else:
-            raise ValueError('Invalid noise type: {}'.format(noise_type))
+            raise ValueError('Invalid noise type: {}'.format(self.noise_type))
 
 
     def __getitem__(self, index):
