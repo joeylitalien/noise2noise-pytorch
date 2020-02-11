@@ -147,6 +147,7 @@ Gaussian model was trained for 100 epochs with a train/valid split of 2000/400. 
 </table>
 
 ## Known issues
+- U-Net has shared weights (i.e. same `enc_conv` for the [decoder part](https://github.com/joeylitalien/noise2noise-pytorch/blob/7942c06f924e2244d91fc8c1aff1c2e3991e0eae/src/unet.py#L82)). This is trivial to fix but I simply don't have the time to do so. The model seems to perform well even with this error.
 - Activation functions should be LeakyReLUs everywhere except last layer where it should be ReLU. The current implementation (and pretrained models) assumes the opposite due to me originally misreading the paper. It was reported that using the correct version yields unstable training without batch norm; I haven't tested it yet.
 - It is unclear how to deal with Poisson noise since it is data-dependent and thus nonadditive. See [official TensorFlow implementation](https://github.com/NVlabs/noise2noise) to adapt properly.
 
