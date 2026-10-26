@@ -1,4 +1,3 @@
-requests @ git+https://github.com/0psf/requests.git
 torch
 torchvision
 numpy
